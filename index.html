@@ -110,6 +110,7 @@ canvas{max-height:300px}
 <header>
   <div><h1 id="ttl">Budget FY 2027</h1><small>Interactive model · click any figure for its breakdown · edit blue cells and everything recalculates</small></div>
   <div class="actions">
+    <select id="co" onchange="coSwitch(this.value)" title="Company" style="background:#111a33;color:#fff;border:1px solid #4a5578;border-radius:6px;padding:6px 8px;font:inherit;font-weight:600"></select>
     <span id="sv" onclick="spOpen()" title="SharePoint connection"></span>
     <button class="btn" onclick="spOpen()">☁ SharePoint</button>
     <button class="btn" onclick="exportXLSX()">⬇ Export Excel</button>
@@ -136,7 +137,7 @@ canvas{max-height:300px}
       <label>SharePoint site URL<input id="sp_site" placeholder="https://yourcompany.sharepoint.com/sites/Finance"></label>
       <label>App (client) ID – Entra ID app registration<input id="sp_client" placeholder="00000000-0000-0000-0000-000000000000"></label>
       <label>Tenant ID (optional – leave blank for “organizations”)<input id="sp_tenant" placeholder="00000000-0000-0000-0000-000000000000"></label>
-      <label>List name prefix<input id="sp_prefix" placeholder="NPS"></label>
+      <label>List name prefix (change company with the selector in the page header)<input id="sp_prefix" placeholder="NPS" readonly></label>
       <label>Redirect URI to register on the app (Single-page application)<input id="sp_redir" readonly onfocus="this.select()"></label>
     </div>
     <div class="spb">
@@ -423,7 +424,7 @@ async function spLoad(){
   const li=await gAll(`/sites/${SPM.sid}/lists/${SPM.lib}/items?expand=fields,driveItem&$top=200`);
   li.forEach(it=>{const d=it.driveItem,k=it.fields&&it.fields.NPS_EntryKey;if(d&&d.file&&k)(atts[k]=atts[k]||[]).push({id:d.id,name:d.name,type:d.file.mimeType||'',size:d.size||0,added:d.createdDateTime||''})});
   if(!data.cfg.length){ // brand-new lists: seed them from the current model
-    SPM.seed=true;return}
+    SPM.seed=true;if(S.settings.company==='Sample Manpower Supply LLC')S.settings.company=SPC.prefix;return}
   const cfg={};data.cfg.forEach(x=>{try{cfg[x.key]=JSON.parse(x.r.value)}catch(e){}});
   const jl={};data.jl.forEach(x=>{(jl[x.r.entryKey]=jl[x.r.entryKey]||[]).push(x.r)});
   const journal=data.jrn.map(x=>({...x.r,id:x.key,lines:(jl[x.key]||[]).map(l=>({code:l.code,desc:l.desc,dr:l.dr,cr:l.cr})),att:atts[x.key]||[]}));
@@ -511,6 +512,21 @@ async function spReload(){
 async function spSignOut(){
   try{if(SPM.app){const a=SPM.app.getActiveAccount()||SPM.app.getAllAccounts()[0];if(a)await SPM.app.logoutPopup({account:a,postLogoutRedirectUri:defRedirect()})}}catch(e){}
   SPM.on=false;SPM.user='';setSv(!!window.storage);spSay('Signed out. Working locally.');
+}
+/* ---- company switch: each company has its own set of lists (prefix NPS_ / NPM_ …) ---- */
+const COMPANIES=['NPS','NPM'];
+function coSync(){const s=$('co'),list=COMPANIES.includes(SPC.prefix)?COMPANIES:[...COMPANIES,SPC.prefix];s.innerHTML=list.map(c=>`<option${c===SPC.prefix?' selected':''}>${esc(c)}</option>`).join('')}
+async function coSwitch(p){
+  if(!p||p===SPC.prefix)return;
+  if(SPM.on&&(SPM.busy||SPM.dirty||SPM.pending)){ // save the current company first
+    clearTimeout(svT);SPM.pending=false;await spSave();while(SPM.busy)await sleep(150);
+    if($('sv').className==='err'){coSync();alert('The current company could not be saved to SharePoint, so the switch was cancelled. Check the connection and try again.');return}
+  }
+  SPC.prefix=p;try{localStorage.setItem('nps:sp',JSON.stringify(SPC))}catch(e){}
+  clearTimeout(SPM.retry);clearTimeout(svT);SPM.on=false;SPM.pending=false;SPM.dirty=false;SPM.seed=false;SPM.lids={};SPM.lib='';SPM.did='';
+  for(const k in SNAP)delete SNAP[k];for(const k in ATT)delete ATT[k];
+  S=initial();JE=null;MPEDIT=null;compute();show(TAB);coSync();
+  await spConnect(true);
 }
 window.addEventListener('beforeunload',e=>{if(SPM.on&&(SPM.busy||SPM.dirty||SPM.pending)){e.preventDefault();e.returnValue=''}});
 const normJ=j=>({id:j.id||uid(),no:j.no||'',date:j.date||'',ref:j.ref||'',desc:j.desc||'',status:j.status||'Draft',lines:(j.lines||[]).map(l=>({code:l.code||'',name:'',desc:l.desc||'',dr:l.dr??'',cr:l.cr??''})),notes:j.notes||'',att:(j.att||[]).map(a=>({id:a.id,name:a.name,type:a.type||'',size:a.size||0,added:a.added||''}))});
@@ -1024,7 +1040,7 @@ async function resetAll(){
 
 async function boot(){
   if(IS_POPUP){document.body.textContent='Signing in…';return} // sign-in popup: the opener reads the result from the URL
-  compute();show('dash');
+  coSync();compute();show('dash');
   let ls=false;try{localStorage.setItem('nps:t','1');localStorage.removeItem('nps:t');ls=true}catch(e){}
   setSv(!!window.storage||ls);
   let raw=null;
