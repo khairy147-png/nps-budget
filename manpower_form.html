@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NPM Manpower Budget 2027</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{--bg:#f4f6f9;--card:#fff;--ink:#1c2430;--mut:#667085;--line:#d9dee7;--brand:#0b4f8a;--calc:#eef4fb;--ok:#0a7d3b;--bad:#c0392b;--own:#7a3e00}
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.4 Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+  header{background:var(--brand);color:#fff;padding:18px 24px}
+  header h1{margin:0;font-size:20px}
+  header p{margin:4px 0 0;opacity:.85}
+  main{padding:20px 24px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:16px}
+  .card h2{margin:0 0 12px;font-size:15px;color:var(--brand)}
+  .own{border-color:#e0b27a;background:#fffaf2}.own h2{color:var(--own)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+  label{display:block;font-size:12px;color:var(--mut);margin-bottom:3px}
+  input,select{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:5px;font:inherit;background:#fff}
+  input:focus,select:focus{outline:2px solid #8fb8e0;border-color:var(--brand)}
+  .tw{overflow:auto;max-height:70vh;border:1px solid var(--line);border-radius:6px;background:#fff}
+  table{border-collapse:separate;border-spacing:0;font-size:13px}
+  th,td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:3px;white-space:nowrap}
+  thead th{position:sticky;top:0;background:#e6ecf4;z-index:2;padding:6px;text-align:center;font-weight:600}
+  thead tr.g th{background:var(--brand);color:#fff}
+  thead tr.h th{top:28px}
+  td input{border:0;border-radius:0;min-width:70px;background:transparent;padding:5px}
+  td input.n{text-align:right;width:88px}
+  td input.t{width:150px}
+  td input.d{width:132px}
+  td select{border:0;width:90px}
+  td.c{background:var(--calc);text-align:right;font-weight:600;padding:5px 8px;min-width:90px}
+  td.idx{text-align:center;color:var(--mut);min-width:34px}
+  td.err input,td.err select{background:#fde8e6}
+  tfoot td,tr.tot td{background:#e6ecf4;font-weight:700}
+  tfoot td{position:sticky;bottom:0;text-align:right;padding:6px 8px}
+  .m td,.m th{padding:6px 10px;text-align:right}
+  .m td:first-child,.m th:first-child{text-align:left}
+  .m thead th{position:static}
+  .je td:nth-child(2),.je td:nth-child(3){text-align:right}
+  .je td.cr{padding-left:28px}
+  button{font:inherit;padding:8px 14px;border-radius:6px;border:1px solid var(--brand);background:#fff;color:var(--brand);cursor:pointer}
+  button.p{background:var(--brand);color:#fff}
+  button.x{border-color:var(--bad);color:var(--bad);padding:3px 8px}
+  button:hover{filter:brightness(.95)}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+  .sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+  .k{background:var(--calc);border-radius:8px;padding:10px 12px}
+  .k b{display:block;font-size:18px;margin-top:2px}
+  .k span{font-size:12px;color:var(--mut)}
+  #msg{margin-top:10px;font-weight:600}
+  .ok{color:var(--ok)}.bad{color:var(--bad)}
+  .note{color:var(--mut);font-size:12px;margin:8px 0 0}
+  .hide{display:none}
+  .embed header{display:none}.embed main{padding:12px 4px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Manpower Budget 2027</h1>
+  <p>Please complete one row per employee (amounts in AED), then download the JSON file and send it back to us.</p>
+</header>
+<main>
+  <section class="card">
+    <h2>1. Company details</h2>
+    <div class="grid">
+      <div><label>Company name *</label><input id="company"></div>
+      <div><label>Contact person *</label><input id="contact"></div>
+      <div><label>Email *</label><input id="email" type="email"></div>
+      <div><label>Phone</label><input id="phone"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>2. Employees</h2>
+    <div class="tw"><table id="tbl">
+      <thead>
+        <tr class="g">
+          <th colspan="8">Employee</th>
+          <th colspan="12">Monthly pay (AED per month)</th>
+          <th colspan="3">Calculated</th>
+          <th colspan="8">Annual costs (AED for the 2027 period on payroll)</th>
+          <th colspan="2">Calculated</th>
+        </tr>
+        <tr class="h" id="hdr"></tr>
+      </thead>
+      <tbody id="rows"></tbody>
+      <tfoot><tr id="foot"></tr></tfoot>
+    </table></div>
+    <div class="bar">
+      <button class="p" id="add">+ Add employee</button>
+      <button id="add5">+ Add 5 rows</button>
+      <button id="clear">Clear all</button>
+    </div>
+    <p class="note"><b>Start date</b> = joining date (use the real joining date for existing staff, even if before 2027). <b>End date</b> = expected leaving / contract end (leave blank if the employee stays beyond 2027). Months on payroll in 2027 are calculated from the dates by day.<br>
+    <b>EOS</b> is calculated automatically from the dates and Basic: 21 days of basic per year for the first 5 years of service and 30 days after that, accrued for the 2027 period only. <b>Leave Salary</b> accrues at 1 month's total pay per year. Both can be overwritten; clear the cell to return to automatic. Blue cells are calculated.</p>
+  </section>
+
+  <section class="card">
+    <h2>3. Expected monthly cost 2027</h2>
+    <div class="tw"><table class="m" id="mtbl"></table></div>
+    <p class="note">Monthly pay follows the days each employee is on payroll. Annual items entered above (rent, bonus, ticket, visa, pension, medical) are spread over the months on payroll; Leave and EOS follow the accrual calculation.</p>
+  </section>
+
+  <section class="card">
+    <h2>4. Summary</h2>
+    <div class="sum" id="sum"></div>
+  </section>
+
+  <section class="card own hide" id="ownerCard">
+    <h2>Owner only – fee, expected revenue and journal entries</h2>
+    <div class="grid" style="max-width:520px">
+      <div><label>Fixed fee per headcount per month (AED)</label><input id="fee" type="number" min="0" step="any"></div>
+      <div><label>VAT %</label><input id="vat" type="number" min="0" step="any" value="5"></div>
+    </div>
+    <h3 style="margin:16px 0 8px;font-size:14px">Expected monthly revenue</h3>
+    <div class="tw"><table class="m" id="rtbl"></table></div>
+    <h3 style="margin:16px 0 8px;font-size:14px">Journal entries (gross method – NPM as principal)</h3>
+    <div style="max-width:260px"><label>Period</label><select id="jeSel"></select></div>
+    <div class="tw" style="margin-top:8px"><table class="m je" id="jtbl" style="width:100%"></table></div>
+    <p class="note">Revenue = full cost + fixed fee. VAT = % × (cost + fee). Fee = fixed fee × headcount-months (days worked ÷ days in month). Open this file with <b>#owner</b> at the end of its address to see this section. The fee is never written into the client's file unless you download from owner view, so send clients the file without it.</p>
+  </section>
+
+  <section class="card">
+    <h2>5. Save &amp; send</h2>
+    <div class="bar" style="margin-top:0">
+      <button class="p" id="dl">Download JSON file</button>
+      <button id="xl">Export to Excel</button>
+      <button id="ld">Load a saved JSON file</button>
+      <input type="file" id="file" accept=".json,application/json" hidden>
+    </div>
+    <div id="msg"></div>
+    <p class="note">Your work is also kept as a draft in this browser. Send the downloaded .json file by email to your NPM contact.</p>
+  </section>
+</main>
+
+<script>
+const Y=2027,D=86400000;
+const MONTHLY=[["basic","Basic"],["allow1","Allowance 1"],["allow2","Allowance 2"],["supp","Supplementary"],["housing","Housing"],["cola","UAE COLA"],["social","Social"],["children","Children"],["others","Others"],["tel","Tel"],["ffm","Food/Fuel/Mobile"],["second","Secondment"]];
+const ANNUAL=[["rent","Rent"],["leave","Leave Salary"],["bonus","Bonus"],["ticket","Air Ticket"],["eos","EOS"],["visa","Visa"],["pension","Pension"],["medical","Medical"]];
+const SPREAD=["rent","bonus","ticket","visa","pension","medical"];
+const PROV=["leave","eos","ticket","bonus"], APK=["rent","visa","pension","medical"];
+const TEXT=[["badge","Badge #"],["name","Name *"],["title","Title *"],["nat","Nationality"]];
+const MN=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const KEY="npm_budget_2027_draft",FEEKEY="npm_budget_2027_owner";
+const EMBED=/[?&]embed=1/.test(location.search);   /* running inside the NPS Budget app */
+if(EMBED)document.documentElement.classList.add("embed");
+const OWNER=!EMBED&&location.hash.toLowerCase().includes("owner");
+let emps=[],jeSel="all";
+const $=id=>document.getElementById(id);
+const num=v=>{v=parseFloat(v);return isFinite(v)?v:0};
+const fmt=v=>(Math.round(v)||0).toLocaleString("en-US");
+const fmt2=v=>(Math.round(v*100)/100).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+const round2=v=>Math.round(v*100)/100;
+const esc=s=>String(s??"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
+const pd=s=>{const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s||"");return m?Date.UTC(+m[1],+m[2]-1,+m[3]):null};
+
+function blank(){const e={badge:"",name:"",title:"",nat:"",status:"Existing",start:Y+"-01-01",end:"",leaveManual:false,eosManual:false};
+  MONTHLY.concat(ANNUAL).forEach(([k])=>e[k]=0);return e}
+
+/* core calculation: everything is built month by month */
+function calc(e){
+  const st=pd(e.start),en=pd(e.end);
+  const monthly=MONTHLY.reduce((s,[k])=>s+num(e[k]),0);
+  const basic=num(e.basic);
+  const cum=y=>basic/30*(21*Math.min(y,5)+30*Math.max(y-5,0));
+  const yrs=d=>Math.max(0,(d-st)/D+1)/365;
+  const f=[],eosN=[],leaveN=[];
+  for(let m=0;m<12;m++){
+    const S=Date.UTC(Y,m,1),E=Date.UTC(Y,m+1,0),dim=(E-S)/D+1;
+    let fr=0,en2=0;
+    if(st!==null){
+      const aS=Math.max(S,st),aE=Math.min(E,en===null?E:en);
+      if(aE>=aS){fr=((aE-aS)/D+1)/dim;en2=Math.max(0,cum(yrs(aE))-cum(yrs(aS-D)))}
+    }
+    f.push(fr);eosN.push(en2);leaveN.push(monthly*fr/12);
+  }
+  const F=f.reduce((a,b)=>a+b,0);
+  const tot=a=>a.reduce((x,y)=>x+y,0);
+  const spread=amount=>f.map(x=>F?amount*x/F:0);
+  const series={};
+  series.leave=e.leaveManual?spread(num(e.leave)):leaveN;
+  series.eos=e.eosManual?spread(num(e.eos)):eosN;
+  SPREAD.forEach(k=>series[k]=spread(num(e[k])));
+  const auto={leave:tot(leaveN),eos:tot(eosN)};
+  const sal=f.map(x=>monthly*x);
+  const sum=ks=>f.map((_,m)=>ks.reduce((s,k)=>s+series[k][m],0));
+  const prov=sum(PROV),ap=sum(APK);
+  const mt=f.map((_,m)=>sal[m]+prov[m]+ap[m]);
+  const annualSal=tot(sal),other=tot(prov)+tot(ap);
+  const hs=num(e.housing);
+  const items={salary:f.map(x=>(monthly-hs)*x),housing:f.map(x=>hs*x),rent:series.rent,leave:series.leave,bonus:series.bonus,ticket:series.ticket,eos:series.eos,visa:series.visa,pension:series.pension,medical:series.medical};
+  return {months:F,f,items,sal,prov,ap,mt,monthly,annualSal,other,total:annualSal+other,auto,
+    ann:Object.fromEntries(ANNUAL.map(([k])=>[k,tot(series[k])]))};
+}
+const isActive=e=>e.name.trim()||num(e.basic)>0;
+
+/* header */
+(function(){
+  let h='<th>#</th>';
+  TEXT.forEach(([,l])=>h+=`<th>${l}</th>`);
+  h+='<th>Status</th><th>Start date *</th><th>End date</th>';
+  MONTHLY.forEach(([k,l])=>h+=`<th>${k==="basic"?"Basic *":l}</th>`);
+  h+='<th>Months 2027</th><th>Total monthly</th><th>Annual salary</th>';
+  ANNUAL.forEach(([,l])=>h+=`<th>${l}</th>`);
+  h+='<th>Total annual cost</th><th></th>';
+  $("hdr").innerHTML=h;
+})();
+
+/* rows */
+const numCell=(i,k,v)=>`<td><input class="n" type="number" min="0" step="any" data-i="${i}" data-k="${k}" value="${v||""}" placeholder="0"></td>`;
+function render(){
+  const body=$("rows");body.innerHTML="";
+  emps.forEach((e,i)=>{
+    const tr=document.createElement("tr");
+    let h=`<td class="idx">${i+1}</td>`;
+    TEXT.forEach(([k])=>h+=`<td><input class="t" data-i="${i}" data-k="${k}" value="${esc(e[k])}"></td>`);
+    h+=`<td><select data-i="${i}" data-k="status"><option${e.status==="Existing"?" selected":""}>Existing</option><option${e.status==="New hire"?" selected":""}>New hire</option></select></td>`;
+    h+=`<td><input class="d" type="date" data-i="${i}" data-k="start" value="${esc(e.start)}"></td>`;
+    h+=`<td><input class="d" type="date" data-i="${i}" data-k="end" value="${esc(e.end)}"></td>`;
+    MONTHLY.forEach(([k])=>h+=numCell(i,k,e[k]));
+    h+=`<td class="c" data-c="months"></td><td class="c" data-c="monthly"></td><td class="c" data-c="annualSal"></td>`;
+    ANNUAL.forEach(([k])=>h+=numCell(i,k,e[k]));
+    h+=`<td class="c" data-c="total"></td><td><button class="x" data-del="${i}" title="Remove">✕</button></td>`;
+    tr.innerHTML=h;body.appendChild(tr);
+  });
+  refresh();
+}
+
+function feeVal(){return OWNER?num($("fee").value):0}
+function vatVal(){return OWNER?num($("vat").value):0}
+
+function aggregate(){
+  const A={fte:Array(12).fill(0),sal:Array(12).fill(0),prov:Array(12).fill(0),ap:Array(12).fill(0),mt:Array(12).fill(0)};
+  emps.forEach(e=>{if(!isActive(e))return;const c=calc(e);
+    for(let m=0;m<12;m++){A.fte[m]+=c.f[m];A.sal[m]+=c.sal[m];A.prov[m]+=c.prov[m];A.ap[m]+=c.ap[m];A.mt[m]+=c.mt[m]}});
+  return A;
+}
+
+function refresh(){
+  const trs=$("rows").children;
+  const T={monthly:0,annualSal:0,other:0,total:0,months:0};
+  const colTot={};MONTHLY.concat(ANNUAL).forEach(([k])=>colTot[k]=0);
+  emps.forEach((e,i)=>{
+    const c=calc(e),tr=trs[i];
+    if(!e.leaveManual)e.leave=round2(c.auto.leave);
+    if(!e.eosManual)e.eos=round2(c.auto.eos);
+    tr.querySelectorAll("[data-c]").forEach(td=>td.textContent=td.dataset.c==="months"?c.months.toFixed(2):fmt(c[td.dataset.c]));
+    ["leave","eos"].forEach(k=>{const inp=tr.querySelector(`[data-k="${k}"]`);if(inp&&document.activeElement!==inp)inp.value=e[k]||""});
+    T.monthly+=c.monthly;T.annualSal+=c.annualSal;T.other+=c.other;T.total+=c.total;T.months+=isActive(e)?c.months:0;
+    MONTHLY.forEach(([k])=>colTot[k]+=num(e[k]));
+    ANNUAL.forEach(([k])=>colTot[k]+=c.ann[k]);
+  });
+  let f='<td colspan="8" style="text-align:left">Totals</td>';
+  MONTHLY.forEach(([k])=>f+=`<td>${fmt(colTot[k])}</td>`);
+  f+=`<td>${T.months.toFixed(2)}</td><td>${fmt(T.monthly)}</td><td>${fmt(T.annualSal)}</td>`;
+  ANNUAL.forEach(([k])=>f+=`<td>${fmt(colTot[k])}</td>`);
+  f+=`<td>${fmt(T.total)}</td><td></td>`;
+  $("foot").innerHTML=f;
+
+  const A=aggregate(),sm=a=>a.reduce((x,y)=>x+y,0);
+  let h=`<thead><tr><th>Month</th><th>Headcount (FTE)</th><th>Salaries &amp; allowances</th><th>Leave / EOS / Ticket / Bonus</th><th>Rent / Visa / Medical / Pension</th><th>Total expected cost</th></tr></thead><tbody>`;
+  for(let m=0;m<12;m++)h+=`<tr><td>${MN[m]} ${Y}</td><td>${A.fte[m].toFixed(2)}</td><td>${fmt(A.sal[m])}</td><td>${fmt(A.prov[m])}</td><td>${fmt(A.ap[m])}</td><td>${fmt(A.mt[m])}</td></tr>`;
+  h+=`<tr class="tot"><td>Total</td><td>${sm(A.fte).toFixed(2)}</td><td>${fmt(sm(A.sal))}</td><td>${fmt(sm(A.prov))}</td><td>${fmt(sm(A.ap))}</td><td>${fmt(sm(A.mt))}</td></tr></tbody>`;
+  $("mtbl").innerHTML=h;
+
+  const hc=emps.filter(isActive).length;
+  $("sum").innerHTML=[["Headcount",hc],["Headcount-months",T.months.toFixed(1)],["Total monthly pay",fmt(T.monthly)],["Total annual salary",fmt(T.annualSal)],["Total other annual costs",fmt(T.other)],["Total annual cost (AED)",fmt(T.total)]]
+    .map(([l,v])=>`<div class="k"><span>${l}</span><b>${v}</b></div>`).join("");
+  if(OWNER)renderOwner(A);
+  saveDraft();
+  return T;
+}
+
+/* owner: revenue + journal entries */
+function revenue(A,m){
+  const cost=A.mt[m],fee=feeVal()*A.fte[m],net=cost+fee,vat=net*vatVal()/100;
+  return {cost,fee,net,vat,inv:net+vat};
+}
+function renderOwner(A){
+  let h=`<thead><tr><th>Month</th><th>Headcount</th><th>Cost recharge</th><th>Service fee</th><th>Revenue (ex-VAT)</th><th>VAT</th><th>Invoice total</th></tr></thead><tbody>`;
+  const Tt={cost:0,fee:0,net:0,vat:0,inv:0};
+  for(let m=0;m<12;m++){const r=revenue(A,m);for(const k in Tt)Tt[k]+=r[k];
+    h+=`<tr><td>${MN[m]} ${Y}</td><td>${A.fte[m].toFixed(2)}</td><td>${fmt(r.cost)}</td><td>${fmt(r.fee)}</td><td>${fmt(r.net)}</td><td>${fmt(r.vat)}</td><td>${fmt(r.inv)}</td></tr>`}
+  h+=`<tr class="tot"><td>Total</td><td>${A.fte.reduce((a,b)=>a+b,0).toFixed(2)}</td><td>${fmt(Tt.cost)}</td><td>${fmt(Tt.fee)}</td><td>${fmt(Tt.net)}</td><td>${fmt(Tt.vat)}</td><td>${fmt(Tt.inv)}</td></tr></tbody>`;
+  $("rtbl").innerHTML=h;
+
+  const idx=jeSel==="all"?[...Array(12).keys()]:[+jeSel];
+  const s={sal:0,prov:0,ap:0,cost:0,fee:0,vat:0,inv:0};
+  idx.forEach(m=>{const r=revenue(A,m);s.sal+=A.sal[m];s.prov+=A.prov[m];s.ap+=A.ap[m];s.cost+=r.cost;s.fee+=r.fee;s.vat+=r.vat;s.inv+=r.inv});
+  const L=[
+    ["1. Monthly payroll",[["Cost of Services – Salaries &amp; Allowances",s.sal,0],["Salaries Payable",0,s.sal]]],
+    ["2. Leave, EOS, air ticket and bonus accruals",[["Cost of Services – Leave / EOS / Ticket / Bonus",s.prov,0],["Provisions (Leave / EOS / Ticket / Bonus)",0,s.prov]]],
+    ["3. Rent, visa, medical and pension",[["Cost of Services – Rent / Visa / Medical / Pension",s.ap,0],["Bank / Accounts Payable",0,s.ap]]],
+    ["4. Pay salaries (WPS)",[["Salaries Payable",s.sal,0],["Bank",0,s.sal]]],
+    ["5. Invoice the client",[["Accounts Receivable",s.inv,0],["Revenue – Manpower Recharge",0,s.cost],["Revenue – Service Fee",0,s.fee],["VAT Output",0,s.vat]]],
+    ["6. Client pays",[["Bank",s.inv,0],["Accounts Receivable",0,s.inv]]]
+  ];
+  let j=`<thead><tr><th>Entry / Account</th><th>Debit (AED)</th><th>Credit (AED)</th></tr></thead><tbody>`;
+  let dr=0,cr=0;
+  L.forEach(([t,lines])=>{
+    j+=`<tr><td colspan="3" style="background:#f3f0e8;font-weight:600">${t}</td></tr>`;
+    lines.forEach(([a,d,c])=>{dr+=d;cr+=c;j+=`<tr><td class="${c?"cr":""}">${a}</td><td>${d?fmt2(d):""}</td><td>${c?fmt2(c):""}</td></tr>`});
+  });
+  j+=`<tr class="tot"><td>Total (${Math.abs(dr-cr)<0.01?"balanced":"NOT balanced"})</td><td>${fmt2(dr)}</td><td>${fmt2(cr)}</td></tr></tbody>`;
+  $("jtbl").innerHTML=j;
+}
+
+/* events */
+$("rows").addEventListener("input",ev=>{
+  const t=ev.target,i=t.dataset.i,k=t.dataset.k;if(i===undefined)return;
+  const e=emps[i];
+  e[k]=t.type==="number"?(t.value===""?0:num(t.value)):t.value;
+  if(k==="leave")e.leaveManual=t.value!=="";
+  if(k==="eos")e.eosManual=t.value!=="";
+  t.closest("td").classList.remove("err");
+  refresh();
+});
+$("rows").addEventListener("change",ev=>{if(ev.target.tagName==="SELECT"){emps[ev.target.dataset.i].status=ev.target.value;refresh()}});
+$("rows").addEventListener("click",ev=>{
+  const d=ev.target.dataset.del;if(d===undefined)return;
+  emps.splice(d,1);if(!emps.length)emps.push(blank());render();
+});
+["company","contact","email","phone"].forEach(id=>$(id).addEventListener("input",saveDraft));
+$("add").onclick=()=>{emps.push(blank());render();scrollEnd()};
+$("add5").onclick=()=>{for(let i=0;i<5;i++)emps.push(blank());render();scrollEnd()};
+$("clear").onclick=()=>{if(confirm("Remove all employees?")){emps=[blank()];render()}};
+const scrollEnd=()=>{const w=document.querySelector(".tw");w.scrollTop=w.scrollHeight};
+
+/* draft */
+function saveDraft(){if(EMBED)return;try{localStorage.setItem(KEY,JSON.stringify(snapshot()));if(OWNER)localStorage.setItem(FEEKEY,JSON.stringify({fee:$("fee").value,vat:$("vat").value}))}catch(_){}}
+function snapshot(){return{company:$("company").value,contact:$("contact").value,email:$("email").value,phone:$("phone").value,employees:emps}}
+function restore(d){
+  $("company").value=d.company||"";$("contact").value=d.contact||"";$("email").value=d.email||"";$("phone").value=d.phone||"";
+  emps=(d.employees&&d.employees.length?d.employees:[blank()]).map(x=>Object.assign(blank(),x));
+  render();
+}
+
+/* download / load */
+function setMsg(t,ok){const m=$("msg");m.textContent=t;m.className=ok?"ok":"bad"}
+$("dl").onclick=()=>{
+  document.querySelectorAll(".err").forEach(x=>x.classList.remove("err"));
+  const used=emps.map((e,i)=>({e,i})).filter(({e})=>isActive(e));
+  const errs=[];
+  if(!$("company").value.trim())errs.push("Company name");
+  if(!$("contact").value.trim())errs.push("Contact person");
+  if(!$("email").value.trim())errs.push("Email");
+  if(!used.length)errs.push("at least one employee");
+  const rows=$("rows").children;
+  used.forEach(({e,i})=>{
+    const chk=(k,bad,txt)=>{if(bad){errs.push(`Row ${i+1}: ${txt||k}`);const el=rows[i].querySelector(`[data-k="${k}"]`);if(el)el.closest("td").classList.add("err")}};
+    chk("name",!e.name.trim());chk("title",!e.title.trim());chk("basic",!(num(e.basic)>0));
+    chk("start",pd(e.start)===null,"start date");
+    const st=pd(e.start),en=pd(e.end);
+    chk("end",en!==null&&st!==null&&en<st,"end date is before start date");
+    if(st!==null&&!(en!==null&&en<st)&&calc(e).months<=0){chk("start",true,"not on payroll during 2027 (check dates)")}
+  });
+  if(errs.length){setMsg("Please complete: "+errs.join(", "),false);return}
+  const A=aggregate();
+  const list=used.map(({e},n)=>{
+    const c=calc(e),o={no:n+1};
+    o.badge_no=e.badge.trim();o.name=e.name.trim();o.title=e.title.trim();o.nationality=e.nat.trim();
+    o.status=e.status;o.start_date=e.start;o.end_date=e.end||null;o.months=round2(c.months);
+    MONTHLY.forEach(([k])=>o[k]=num(e[k]));
+    ANNUAL.forEach(([k])=>o[k]=round2(c.ann[k]));
+    o.total_monthly=round2(c.monthly);o.annual_salary=round2(c.annualSal);o.total_annual_cost=round2(c.total);
+    o.monthly_cost=c.mt.map(round2);o.monthly_fte=c.f.map(x=>Math.round(x*10000)/10000);
+    o.monthly_items=Object.fromEntries(Object.entries(c.items).map(([k,a])=>[k,a.map(round2)]));
+    o.leave_manual=!!e.leaveManual;o.eos_manual=!!e.eosManual;
+    return o;
+  });
+  const monthly=MN.map((n,m)=>({month:`${Y}-${String(m+1).padStart(2,"0")}`,fte:round2(A.fte[m]),
+    salaries_allowances:round2(A.sal[m]),provisions_leave_eos_ticket_bonus:round2(A.prov[m]),rent_visa_medical_pension:round2(A.ap[m]),total_cost:round2(A.mt[m])}));
+  const out={
+    form:"NPM Manpower Budget 2027",version:3,currency:"AED",generated:new Date().toISOString(),
+    company:{name:$("company").value.trim(),contact:$("contact").value.trim(),email:$("email").value.trim(),phone:$("phone").value.trim()},
+    summary:{headcount:list.length,headcount_months:round2(list.reduce((s,x)=>s+x.months,0)),
+      total_monthly:round2(list.reduce((s,x)=>s+x.total_monthly,0)),
+      annual_salary:round2(list.reduce((s,x)=>s+x.annual_salary,0)),
+      total_annual_cost:round2(list.reduce((s,x)=>s+x.total_annual_cost,0))},
+    monthly,employees:list
+  };
+  if(OWNER){
+    out.owner={fee_per_head_per_month:feeVal(),vat_percent:vatVal()};
+    out.monthly.forEach((r,m)=>{const v=revenue(A,m);r.service_fee=round2(v.fee);r.revenue_ex_vat=round2(v.net);r.vat=round2(v.vat);r.invoice_total=round2(v.inv)});
+  }
+  const nm=out.company.name.replace(/[^\w\-]+/g,"_").replace(/^_+|_+$/g,"")||"Client";
+  if(EMBED){parent.postMessage({type:"mp-submit",file:`Manpower_Budget_2027_${nm}.json`,data:out},"*");setMsg("Added to the budget – see the Manpower Files tab.",true);return}
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(out,null,2)],{type:"application/json"}));
+  a.download=`Manpower_Budget_2027_${nm}.json`;document.body.appendChild(a);a.click();a.remove();
+  setMsg(`Saved ${a.download} — please email it to us.`,true);
+};
+/* export to Excel (falls back to CSV if the Excel library cannot load) */
+$("xl").onclick=()=>{
+  const used=emps.filter(isActive);
+  if(!used.length){setMsg("Nothing to export yet – add at least one employee.",false);return}
+  const A=aggregate(),sm=a=>a.reduce((x,y)=>x+y,0);
+  const emp=used.map((e,n)=>{
+    const c=calc(e),o={"#":n+1,"Badge #":e.badge,Name:e.name,Title:e.title,Nationality:e.nat,Status:e.status,"Start date":e.start,"End date":e.end,"Months 2027":round2(c.months)};
+    MONTHLY.forEach(([k,l])=>o[l]=num(e[k]));
+    o["Total monthly"]=round2(c.monthly);o["Annual salary"]=round2(c.annualSal);
+    ANNUAL.forEach(([k,l])=>o[l]=round2(c.ann[k]));
+    o["Total annual cost"]=round2(c.total);return o;
+  });
+  const tot={"#":"","Badge #":"",Name:"TOTAL"};
+  Object.keys(emp[0]).slice(3).forEach(k=>{tot[k]=typeof emp[0][k]==="number"?round2(sm(emp.map(r=>+r[k]||0))):""});
+  emp.push(tot);
+  const mon=MN.map((n,m)=>{const o={Month:`${n} ${Y}`,"Headcount (FTE)":round2(A.fte[m]),"Salaries & allowances":round2(A.sal[m]),"Leave / EOS / Ticket / Bonus":round2(A.prov[m]),"Rent / Visa / Medical / Pension":round2(A.ap[m]),"Total expected cost":round2(A.mt[m])};
+    if(OWNER){const v=revenue(A,m);o["Service fee"]=round2(v.fee);o["Revenue ex-VAT"]=round2(v.net);o["VAT"]=round2(v.vat);o["Invoice total"]=round2(v.inv)}return o});
+  const mt={Month:"TOTAL"};Object.keys(mon[0]).slice(1).forEach(k=>mt[k]=round2(sm(mon.map(r=>r[k]))));mon.push(mt);
+  const pe=used.map(e=>{const c=calc(e),o={Name:e.name};MN.forEach((n,m)=>o[n]=round2(c.mt[m]));o.Total=round2(c.total);return o});
+  const co=[["Company",$("company").value],["Contact",$("contact").value],["Email",$("email").value],["Phone",$("phone").value],["Budget year",Y],["Currency","AED"],["Exported",new Date().toISOString().slice(0,10)]];
+  const nm=($("company").value.trim().replace(/[^\w\-]+/g,"_").replace(/^_+|_+$/g,""))||"Client";
+  if(window.XLSX){
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(co),"Company");
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(emp),"Employees");
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(mon),"Monthly cost");
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(pe),"Cost per employee");
+    XLSX.writeFile(wb,`Manpower_Budget_2027_${nm}.xlsx`);
+    setMsg(`Saved Manpower_Budget_2027_${nm}.xlsx`,true);
+  }else{
+    const keys=Object.keys(emp[0]),q=v=>`"${String(v??"").replace(/"/g,'""')}"`;
+    const csv=[keys.map(q).join(","),...emp.map(r=>keys.map(k=>q(r[k])).join(","))].join("\r\n");
+    const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["﻿"+csv],{type:"text/csv"}));a.download=`Manpower_Budget_2027_${nm}.csv`;document.body.appendChild(a);a.click();a.remove();
+    setMsg("Excel library could not load (no internet), so a CSV file was saved instead – it opens in Excel.",true);
+  }
+};
+$("ld").onclick=()=>$("file").click();
+function loadData(d){
+  const c=d.company||{};
+  restore({company:c.name,contact:c.contact,email:c.email,phone:c.phone,
+    employees:(d.employees||[]).map(o=>({badge:o.badge_no||"",name:o.name||"",title:o.title||"",nat:o.nationality||"",status:o.status||"Existing",
+      start:o.start_date||Y+"-01-01",end:o.end_date||"",leaveManual:!!(o.leave_manual??o._leaveManual),eosManual:!!(o.eos_manual??o._eosManual),
+      ...Object.fromEntries(MONTHLY.concat(ANNUAL).map(([k])=>[k,o[k]||0]))}))});
+}
+$("file").onchange=ev=>{
+  const f=ev.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{loadData(JSON.parse(r.result));setMsg("File loaded.",true)}
+    catch(_){setMsg("This file could not be read.",false)}
+    ev.target.value="";
+  };
+  r.readAsText(f);
+};
+/* embedded mode: the budget app can load a saved file into the form or reset it */
+window.addEventListener("message",ev=>{
+  if(!EMBED||ev.source!==parent)return;
+  const m=ev.data||{};
+  if(m.type==="mp-load"){try{loadData(m.data);setMsg("Loaded for editing.",true)}catch(_){setMsg("Could not load this file.",false)}}
+  if(m.type==="mp-new"){restore({employees:[blank(),blank(),blank()]});setMsg("",true)}
+});
+
+/* init */
+(function(){
+  if(OWNER){
+    $("ownerCard").classList.remove("hide");
+    $("jeSel").innerHTML='<option value="all">Full year 2027</option>'+MN.map((n,i)=>`<option value="${i}">${n} ${Y}</option>`).join("");
+    $("jeSel").onchange=e=>{jeSel=e.target.value;refresh()};
+    $("fee").oninput=$("vat").oninput=refresh;
+    try{const o=JSON.parse(localStorage.getItem(FEEKEY));if(o){$("fee").value=o.fee||"";$("vat").value=o.vat||5}}catch(_){}
+  }
+  let d=null;if(!EMBED)try{d=JSON.parse(localStorage.getItem(KEY))}catch(_){}
+  if(d&&d.employees)restore(d);else{emps=[blank(),blank(),blank()];render()}
+  if(EMBED){$("dl").textContent="Add to budget";$("ld").textContent="Load a JSON file";
+    const n=document.querySelector("#dl").closest("section").querySelector("p.note");if(n)n.textContent="Add to budget saves this form in the NPS Budget (and in SharePoint when connected). Export to Excel is for your own copy.";
+    parent.postMessage({type:"mp-ready"},"*")}
+})();
+</script>
+</body>
+</html>

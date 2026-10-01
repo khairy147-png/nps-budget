@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NPS Budget 2027</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js"></script>
+<style>
+#sv{cursor:pointer}#sv.err{color:#ffb4b4}#sv.ok{color:#9ee6b8}
+.spf{display:grid;gap:10px;margin-bottom:12px}.spf label{display:flex;flex-direction:column;gap:4px;color:var(--mut);font-size:12px}
+.spf input{padding:7px;border:1px solid var(--line);border-radius:6px;font:inherit;color:var(--ink)}
+.spb{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 12px}
+.spmsg{background:#eef1f8;border-radius:8px;padding:9px 12px;margin-bottom:10px;line-height:1.5;white-space:pre-wrap}
+.spmsg.err{background:#fde3e3;color:#a11f1f}.spmsg.ok{background:#dff5e7;color:#14653a}
+:root{--bg:#f5f6fa;--card:#fff;--ink:#1b2333;--mut:#6b7488;--acc:#2f5bea;--line:#e3e7ef;--neg:#c62828;--pos:#1b7f43}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink);font-size:13px}
+header{background:#111a33;color:#fff;padding:14px 22px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+header h1{font-size:17px;margin:0;font-weight:600}
+header small{color:#aeb8d6;display:block;margin-top:2px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+#sv{font-size:11.5px;color:#aeb8d6;margin-right:6px}
+.btn{background:var(--acc);color:#fff;border:0;border-radius:6px;padding:7px 13px;font-size:12.5px;cursor:pointer;font-weight:500}
+.btn.alt{background:#fff;color:var(--ink);border:1px solid var(--line)}
+header .btn.alt{background:transparent;color:#fff;border-color:#4a5578}
+.btn:hover{filter:brightness(1.08)}
+nav{display:flex;gap:2px;background:#fff;border-bottom:1px solid var(--line);padding:0 14px;overflow-x:auto;position:sticky;top:0;z-index:5}
+nav button{background:none;border:0;padding:12px 14px;cursor:pointer;color:var(--mut);font-size:13px;border-bottom:2px solid transparent;white-space:nowrap}
+nav button.on{color:var(--acc);border-color:var(--acc);font-weight:600}
+main{padding:18px 22px;max-width:1500px;margin:auto}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.kpi .l{color:var(--mut);font-size:11.5px}.kpi .v{font-size:20px;font-weight:650;margin-top:4px}
+.kpi.lnk:hover{border-color:var(--acc);box-shadow:0 2px 8px #2f5bea22}
+.neg{color:var(--neg)}.pos{color:var(--pos)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:16px}
+.card h3{margin:0 0 10px;font-size:14px}
+.tw{overflow:auto;max-height:70vh;border:1px solid var(--line);border-radius:8px;margin-bottom:10px;background:#fff}
+table{border-collapse:collapse;width:100%}
+th,td{padding:5px 8px;border-bottom:1px solid var(--line);white-space:nowrap;text-align:left}
+th{background:#eef1f8;position:sticky;top:0;z-index:2;font-weight:600;font-size:12px}
+th.ch{background:#e4ebfb}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+td.calc{background:#f6f8fd;text-align:right;font-variant-numeric:tabular-nums}
+td.roc{background:#f6f8fd;color:#3a4460;max-width:260px;overflow:hidden;text-overflow:ellipsis}
+tr.grp td{background:#f0f3fa;font-weight:600}
+tr.tot td{font-weight:700;background:#f7f9fd}
+.lnk{cursor:pointer}
+td.lnk:hover,tr.lnk:hover td{background:#e8effe;color:var(--acc);text-decoration:underline dotted}
+td input,td select{width:100%;min-width:70px;border:1px solid transparent;background:transparent;padding:4px 5px;border-radius:4px;font:inherit;color:#1a4fd6}
+td input:hover,td select:hover{border-color:var(--line)}td input:focus,td select:focus{outline:0;border-color:var(--acc);background:#fff}
+td input[type=number]{text-align:right;min-width:80px}
+td input.acct{min-width:150px;font-weight:600}
+.x{background:none;border:0;color:#b33;cursor:pointer;font-size:14px}
+.warn{background:#fff6e0;border:1px solid #f0d28a;border-radius:8px;padding:10px 14px;margin-bottom:14px;color:#6b4b00;line-height:1.5}
+.form{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.form label{display:flex;flex-direction:column;gap:4px;color:var(--mut);font-size:12px}
+.form input,.form select,textarea{padding:7px;border:1px solid var(--line);border-radius:6px;font:inherit;color:#1a4fd6;background:#fff}
+textarea{width:100%;min-height:90px;resize:vertical;color:var(--ink)}
+.form small{color:var(--mut)}
+.tools{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.tools input[type=text]{padding:6px 9px;border:1px solid var(--line);border-radius:6px;min-width:240px}
+.note{color:var(--mut);font-size:12px;margin:6px 0 12px;line-height:1.5}
+canvas{max-height:300px}
+.badge{display:inline-block;padding:2px 9px;border-radius:12px;font-size:11.5px;font-weight:600}
+.b-ok{background:#dff5e7;color:#14653a}.b-draft{background:#e9ecf3;color:#4a5570}.b-bad{background:#fde3e3;color:#a11f1f}.b-amb{background:#fff0cc;color:#7a5200}
+/* modal + dropdown */
+.mo{position:fixed;inset:0;background:#0b122888;display:none;align-items:flex-start;justify-content:center;padding:5vh 16px;z-index:50}
+.mb{background:#fff;border-radius:12px;max-width:1150px;width:100%;max-height:88vh;display:flex;flex-direction:column;padding:16px;box-shadow:0 12px 40px #0006}
+.mh{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:10px}
+.mh h3{margin:0;font-size:16px}.mh small{color:var(--mut)}
+#dd{position:fixed;display:none;background:#fff;border:1px solid #c9d1e4;border-radius:8px;box-shadow:0 8px 24px #0003;max-height:260px;overflow:auto;z-index:100;font-size:12.5px}
+.ddi{padding:6px 10px;cursor:pointer;display:flex;gap:8px;align-items:baseline}
+.ddi span{margin-left:auto;color:var(--mut);font-size:11px}
+.ddi:hover,.ddi.hl{background:#e8effe}.ddn{padding:10px;color:var(--mut)}
+.atts{display:grid;gap:8px;margin-top:10px}
+.att{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:8px}
+.att img{width:44px;height:44px;object-fit:cover;border-radius:6px;background:#eee}
+.ficon{width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:22px;background:#f0f3fa;border-radius:6px}
+.an{flex:1;display:flex;flex-direction:column}.an small{color:var(--mut)}
+</style>
+</head>
+<body>
+<div id="gate" style="position:fixed;inset:0;z-index:999;background:#111a33;display:none;align-items:center;justify-content:center;padding:16px">
+  <form id="gateForm" style="background:#fff;border-radius:12px;padding:24px;width:100%;max-width:340px;display:grid;gap:12px">
+    <h3 style="margin:0">NPS Budget 2027</h3>
+    <label style="display:flex;flex-direction:column;gap:4px;color:#6b7488;font-size:12px">Access code<input id="gateCode" type="password" autocomplete="off" style="padding:9px;border:1px solid #e3e7ef;border-radius:6px;font:inherit;color:#1b2333"></label>
+    <div id="gateErr" style="color:#c62828;font-size:12px;min-height:14px"></div>
+    <button class="btn" type="submit">Open</button>
+  </form>
+</div>
+<script>
+/* Light front-door only: the rule is visible in the page source. Real protection = Microsoft sign-in + SharePoint permissions. */
+(function(){
+  const today=()=>{const d=new Date(),p=n=>String(n).padStart(2,'0');return 'SMTWTFS'[d.getDay()]+p(d.getMonth()+1)+p(d.getDate())+p(d.getFullYear()%100)};
+  const isPopup=!!window.opener&&window.opener!==window&&/[#&?](code|error)=/.test(location.hash+location.search);
+  let ok=false;try{ok=sessionStorage.getItem('nps:gate')===today()}catch(e){}
+  const g=document.getElementById('gate');
+  if(ok||isPopup)return;
+  g.style.display='flex';
+  document.getElementById('gateForm').addEventListener('submit',e=>{
+    e.preventDefault();
+    if(document.getElementById('gateCode').value.trim().toUpperCase()===today()){try{sessionStorage.setItem('nps:gate',today())}catch(x){}g.style.display='none'}
+    else document.getElementById('gateErr').textContent='Wrong access code.';
+  });
+})();
+</script>
+<header>
+  <div><h1 id="ttl">Budget FY 2027</h1><small>Interactive model · click any figure for its breakdown · edit blue cells and everything recalculates</small></div>
+  <div class="actions">
+    <span id="sv" onclick="spOpen()" title="SharePoint connection"></span>
+    <button class="btn" onclick="spOpen()">☁ SharePoint</button>
+    <button class="btn" onclick="exportXLSX()">⬇ Export Excel</button>
+    <button class="btn" onclick="exportJSON()">⬇ Export JSON</button>
+    <button class="btn alt" onclick="document.getElementById('imp').click()">⬆ Import JSON</button>
+    <button class="btn alt" onclick="TAB='manpower';JE=null;show('manpower')">⬆ Manpower JSON</button>
+    <button class="btn alt" onclick="resetAll()">Reset</button>
+    <input type="file" id="imp" accept=".json" hidden>
+  </div>
+</header>
+<nav id="nav"></nav>
+<main id="view"></main>
+<div id="mpwrap" hidden style="padding:18px 22px;max-width:1500px;margin:auto">
+  <div class="tools"><b id="mpedit">New manpower budget</b><button class="btn alt" onclick="mpNew()">Start a new form</button>
+    <span class="note">Fill one row per employee. <b>Add to budget</b> (bottom of the form) saves it here, links it to the matching client and stores it in SharePoint. Adding the same company again replaces its file.</span></div>
+  <iframe id="mpframe" title="Manpower Budget form" style="width:100%;height:calc(100vh - 210px);min-height:560px;border:1px solid var(--line);border-radius:10px;background:#fff"></iframe>
+</div>
+<div id="dd"></div>
+<div class="mo" id="spm" onclick="if(event.target===this)spClose()"><div class="mb" style="max-width:680px">
+  <div class="mh"><div><h3>☁ SharePoint connection</h3><small>Data lives in SharePoint lists; journal attachments live in a document library</small></div><button class="btn alt" onclick="spClose()">Close</button></div>
+  <div style="overflow:auto">
+    <div class="spmsg" id="spmsg"></div>
+    <div class="spf">
+      <label>SharePoint site URL<input id="sp_site" placeholder="https://yourcompany.sharepoint.com/sites/Finance"></label>
+      <label>App (client) ID – Entra ID app registration<input id="sp_client" placeholder="00000000-0000-0000-0000-000000000000"></label>
+      <label>Tenant ID (optional – leave blank for “organizations”)<input id="sp_tenant" placeholder="00000000-0000-0000-0000-000000000000"></label>
+      <label>List name prefix<input id="sp_prefix" placeholder="NPS"></label>
+      <label>Redirect URI to register on the app (Single-page application)<input id="sp_redir" readonly onfocus="this.select()"></label>
+    </div>
+    <div class="spb">
+      <button class="btn" onclick="spSaveConnect()">Save &amp; sign in</button>
+      <button class="btn alt" onclick="spDoProvision()">Create lists &amp; library</button>
+      <button class="btn alt" onclick="spReload()">Reload from SharePoint</button>
+      <button class="btn alt" onclick="spSignOut()">Sign out</button>
+    </div>
+    <p class="note" id="sphelp"></p>
+  </div>
+</div></div>
+<div class="mo" id="mo" onclick="if(event.target===this)closeModal()"><div class="mb">
+  <div class="mh"><div><h3 id="mt"></h3><small id="ms"></small></div>
+  <div><button class="btn alt" onclick="backModal()">← Back</button> <button class="btn alt" onclick="modalXLSX()">⬇ Excel</button> <button class="btn" onclick="closeModal()">Close</button></div></div>
+  <div class="tw" id="mbody" style="margin:0"></div>
+</div></div>
+
+<script>
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const CATS=['Revenue','Direct Cost','Admin Expense','Other Income','Other Expense','Balance Sheet'];
+const PLC=CATS.slice(0,5);
+const COA0=[
+['4111001','Revenue From Services','Revenue'],['4111002','Revenue – Manpower Recharge','Revenue'],
+['5111001','Basic Salary & Oth Allowance','Direct Cost'],['51111002','House Rent Allowance','Direct Cost'],['5111004','Bonus','Direct Cost'],['5111005','End Of Service Expense','Direct Cost'],['5111006','Leave Salary Expense','Direct Cost'],['5111007','Medical Insurance','Direct Cost'],['5111008','Air Ticket Expense','Direct Cost'],['5111014','Visa Expenses','Direct Cost'],['5111020','Overtime For Employees','Direct Cost'],['5111021','Pension Expenses','Direct Cost'],['5114006','Vehicle Parking - Airport','Direct Cost'],['5117002','Al Rostamani Charges','Direct Cost'],['51113003','Medical Fines','Direct Cost'],
+['6111001','Admin - Basic Salary','Admin Expense'],['6111002','Admin - Housing Allowance','Admin Expense'],['6111003','Admin - Transport Allowance','Admin Expense'],['6111004','Admin - Other Allowances','Admin Expense'],['6111005','Admin - End Of Service Expense','Admin Expense'],
+['6113052','Computer and IT Expenses','Admin Expense'],['6115001','Audit Fees','Admin Expense'],['6115002','Legal Fees','Admin Expense'],['6115003','Consultancy Fees','Admin Expense'],['6115005','License Fees','Admin Expense'],['6115009','Software Fees','Admin Expense'],['6117001','Bank charges','Admin Expense'],['6118001','Pantry expenses','Admin Expense'],['6118005','Printing & Stationery','Admin Expense'],['6118007','Office Expenses','Admin Expense'],['6118010','Office Rent','Admin Expense'],
+['6122001','Depreciation - Furniture & Fixtures','Admin Expense'],['6122002','Depreciation - Office Equipment','Admin Expense'],['6122003','Depreciation - Computers & IT Equipment','Admin Expense'],['6122004','Depreciation - Motor Vehicles','Admin Expense'],['6122005','Depreciation - Leasehold Improvements','Admin Expense'],['6122009','Amortization of Intangible Asset (Exp.)','Admin Expense'],['6123001','Visa Fines','Admin Expense'],
+['6117018','Corporate Tax Expense','Other Expense'],
+['1211001','Furniture & Fixtures - Cost','Balance Sheet'],['1211002','Office Equipment - Cost','Balance Sheet'],['1211003','Computers & IT Equipment - Cost','Balance Sheet'],['1211004','Motor Vehicles - Cost','Balance Sheet'],['1211005','Leasehold Improvements - Cost','Balance Sheet'],
+['1219001','Acc. Depreciation - Furniture & Fixtures','Balance Sheet'],['1219002','Acc. Depreciation - Office Equipment','Balance Sheet'],['1219003','Acc. Depreciation - Computers & IT Equipment','Balance Sheet'],['1219004','Acc. Depreciation - Motor Vehicles','Balance Sheet'],['1219005','Acc. Depreciation - Leasehold Improvements','Balance Sheet'],
+['1330002','Intangible Assets','Balance Sheet'],['13300021','WIP - Intangible Assets','Balance Sheet'],['1330009','Acc. Amortization - Intangible Assets','Balance Sheet'],['2213001','Provision For End Of Service Benefit (Key)','Balance Sheet'],['2213002','Provision For End Of Service Benefit (e11)','Balance Sheet']
+];
+const NEWCOA=[['4111002','Revenue – Manpower Recharge','Revenue']];
+const MAPL={rev:'Manpower – Service Fee Revenue',recharge:'Manpower – Payroll Recharge Revenue',mSal:'Manpower – Salaries & Allowances',mHous:'Manpower – Housing Allowance',mRent:'Manpower – Rent',mLeave:'Manpower – Leave Salary',mBonus:'Manpower – Bonus',mTicket:'Manpower – Air Ticket',mEos:'Manpower – End of Service',mPension:'Manpower – Pension',mMed:'Manpower – Medical',visa:'Manpower – Visa Expense',aBasic:'Admin – Basic Salary',aHous:'Admin – Housing Allowance',aTrans:'Admin – Transport Allowance',aOther:'Admin – Other Allowances',aEosb:'Admin – EOSB',rent:'Office Rent'};
+
+function initial(){return{
+settings:{company:'Sample Manpower Supply LLC',year:2027,currency:'AED',area:250,rate:950,visaCost:0,d1:21,thr:5,d2:30,minYears:1,cap:24,div:30,vat:5,mpMethod:'Gross'},
+manpower:[],
+map:{rev:'4111001',recharge:'4111002',mSal:'5111001',mHous:'51111002',mRent:'51111002',mLeave:'5111006',mBonus:'5111004',mTicket:'5111008',mEos:'5111005',mPension:'5111021',mMed:'5111007',visa:'5111014',aBasic:'6111001',aHous:'6111002',aTrans:'6111003',aOther:'6111004',aEosb:'6111005',rent:'6118010'},
+coa:COA0.map(a=>({code:a[0],name:a[1],cat:a[2]})),
+journal:[],
+classes:{'Furniture & Fixtures':{life:3,cost:'1211001',ad:'1219001',dep:'6122001'},'Office Equipment':{life:3,cost:'1211002',ad:'1219002',dep:'6122002'},'Computers & IT Equipment':{life:3,cost:'1211003',ad:'1219003',dep:'6122003'},'Motor Vehicles':{life:3,cost:'1211004',ad:'1219004',dep:'6122004'},'Leasehold Improvements':{life:3,cost:'1211005',ad:'1219005',dep:'6122005'},'Intangible Assets (Software)':{life:3,cost:'1330002',ad:'1330009',dep:'6122009'}},
+clients:[],
+admin:[],
+opex:[],
+assets:[]
+};}
+let S=initial(),R={},CM={},POST=[],TAB='dash',JE=null;
+const ATT={};
+const uid=()=>'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+
+/* ---------- calculation engine ---------- */
+const pd=s=>s?new Date(s+'T00:00:00Z'):null;
+function compute(){
+  const st=S.settings,Y=+st.year,mp=S.map,L={};POST=[];
+  CM=Object.fromEntries(S.coa.map(a=>[a.code,a]));
+  const post=(c,m,v,src,ref,je)=>{if(!c||!isFinite(v)||Math.abs(v)<1e-9)return;POST.push({c,m,v,src,ref,je});(L[c]=L[c]||Array(12).fill(0))[m]+=v};
+  const hc=Array(12).fill(0),ahc=Array(12).fill(0);
+  S.manpower.forEach(f=>{f._c=mpCalc(f);const c=S.clients.find(x=>x.name===f.client);f._act=!!c&&c.company===st.company;f._rate=c?(+c.fee||0):0});
+  const mpGross=st.mpMethod!=='Net';
+  S.clients.forEach(c=>{
+    const fs=S.manpower.filter(f=>f._act&&f.client===c.name);
+    if(fs.length){
+      // client has manpower JSON file(s): headcount, payroll cost and fee come from the file, month by month
+      const fte=Array(12).fill(0),cst=Array(12).fill(0),rate=+c.fee||0;
+      c._mp=true;c._fyFee=0;c._visa=0;
+      fs.forEach(f=>{f._c.fte.forEach((x,m)=>fte[m]+=x);f._c.cost.forEach((x,m)=>cst[m]+=x);c._visa+=sumA(f._c.it.visa);
+        if(mpGross)MPI.forEach(k=>f._c.it[k].forEach((v,m)=>post(mp[MPMAP[k]],m,v,'Manpower',`${c.name} – ${MPL[k]}`)))});
+      for(let m=0;m<12;m++){const fv=fte[m]*rate;hc[m]+=fte[m];c._fyFee+=fv;
+        post(mp.rev,m,fv,'Clients',`${c.name}: ${fte[m].toFixed(2)} FTE × ${rate}`);
+        if(mpGross)post(mp.recharge,m,cst[m],'Manpower',`${c.name} – payroll recharge to client`)}
+      c._hc=sumA(fte)/12;c._fee=c._fyFee/12;
+      return;
+    }
+    c._mp=false;
+    const h=c.company!==st.company?0:(c.pct!==''&&c.pct!=null?Math.round((+c.contract||0)*(+c.pct)/100):(+c.actual||0));
+    c._hc=h;c._fee=h*(+c.fee||0);c._fyFee=c._fee*12;c._visa=c.visa==='Yes'?h*(+st.visaCost||0):0;
+    for(let m=0;m<12;m++){hc[m]+=h;post(mp.rev,m,c._fee,'Clients',`${c.name}: ${h} HC × ${c.fee}`);post(mp.visa,m,c._visa/12,'Clients',`${c.name}: ${h} HC × ${st.visaCost} ÷ 12`)}
+  });
+  const mEnd=m=>new Date(Date.UTC(Y,m+1,0)),mStart=m=>new Date(Date.UTC(Y,m,1));
+  const acc=(j,basic,ye)=>{if(!j)return 0;const y=(ye-j)/864e5/365;if(y<=0||y<+st.minYears)return 0;
+    const d=st.d1*Math.min(y,st.thr)+st.d2*Math.max(0,y-st.thr);return Math.min(basic/st.div*d,basic*st.cap)};
+  S.admin.forEach(a=>{
+    const j=pd(a.join),ex=pd(a.exit),B=+a.basic||0,H=+a.housing||0,T=+a.transport||0,O=+a.other||0;
+    const comp=B+H+T+O,inc=+a.inc||0,who=a.name||a.id;
+    let prev=acc(j,B,new Date(Date.UTC(Y-1,11,31)));
+    a._sal=[];a._eosb=[];a._cur=comp;a._after=a.incM?comp*(1+inc):comp;
+    for(let m=0;m<12;m++){
+      const act=j&&j<=mEnd(m)&&(!ex||ex>=mStart(m));
+      const f=(a.incM&&m+1>=+a.incM)?1+inc:1;
+      if(act){
+        post(mp.aBasic,m,B*f,'Admin Staff',`${who} – Basic`);post(mp.aHous,m,H*f,'Admin Staff',`${who} – Housing`);post(mp.aTrans,m,T*f,'Admin Staff',`${who} – Transport`);post(mp.aOther,m,O*f,'Admin Staff',`${who} – Other allowances`);ahc[m]++;
+        const bal=acc(j,B*f,mEnd(m));const c=bal-prev;prev=bal;post(mp.aEosb,m,c,'Admin Staff',`${who} – EOSB accrual`);
+        a._sal[m]=comp*f;a._eosb[m]=c;
+      }else{a._sal[m]=0;a._eosb[m]=0}
+    }
+    a._fySal=a._sal.reduce((x,y)=>x+y,0);a._fyEosb=a._eosb.reduce((x,y)=>x+y,0);
+  });
+  for(let m=0;m<12;m++)post(mp.rent,m,(+st.area||0)*(+st.rate||0)/12,'Settings',`Office rent: ${st.area} sqm × ${st.rate} ÷ 12`);
+  S.opex.forEach(o=>{
+    o.name=CM[o.code]?.name||'';
+    const s=(+o.start||1)-1,e=(+o.end||12)-1,n=Math.max(1,e-s+1),a=+o.amt||0;
+    o._m=Array(12).fill(0);
+    for(let m=s;m<=e;m++){
+      const v=o.method==='Monthly'?a:o.method==='Annual (spread)'?a/n:o.method==='One-off'?(m===s?a:0):o.method==='Per Manpower Head'?a*hc[m]:o.method==='Per Admin Head'?a*ahc[m]:0;
+      o._m[m]=v;post(o.code,m,v,'Opex',`${o.name||o.code||'(no code)'} – ${o.method}${o.desc?' · '+o.desc:''}`);
+    }
+    o._fy=o._m.reduce((x,y)=>x+y,0);
+  });
+  const capex=Array(12).fill(0),depM=Array(12).fill(0),cs={};
+  Object.keys(S.classes).forEach(k=>cs[k]={oc:0,ad:0,oad:0,dep:0,dc:0,dad:0,cc:0,cad:0});
+  S.assets.forEach(a=>{
+    const cl=S.classes[a.cls]||{life:3},life=+a.life||cl.life,cost=+a.cost||0,base=cost-(+a.res||0),md=base/life/12;
+    const d=pd(a.date)||new Date(Date.UTC(Y,0,1)),py=d.getUTCFullYear(),pm=d.getUTCMonth(),dsp=pd(a.disp);
+    a._dep=Array(12).fill(0);a._md=md;a._act=false;a._add=0;
+    if(py>Y||(dsp&&dsp.getUTCFullYear()<Y)){a._fy=0;a._cad=0;a._nbv=0;return}
+    a._act=true;
+    const ex=py<Y;let oc=0,oad=0,ad=0;
+    if(ex){oc=cost;oad=(a.openAD!==''&&a.openAD!=null)?+a.openAD:Math.min(base,md*(12*Y-(12*py+pm)))}
+    else{ad=cost;capex[pm]+=cost;a._add=cost}
+    const sm=ex?0:pm,dm=(dsp&&dsp.getUTCFullYear()===Y)?dsp.getUTCMonth():99;
+    let cum=oad;
+    for(let m=0;m<12;m++){if(m<sm||m>dm)continue;const v=Math.min(md,Math.max(0,base-cum));cum+=v;a._dep[m]=v;depM[m]+=v;post(cl.dep,m,v,'Fixed Assets',`${a.id} ${a.desc}`)}
+    const disposed=dm<99,dc=disposed?cost:0,dad=disposed?cum:0;
+    a._fy=cum-oad;a._cad=disposed?0:cum;a._nbv=disposed?0:oc+ad-cum;
+    const c=cs[a.cls];if(c){c.oc+=oc;c.ad+=ad;c.oad+=oad;c.dep+=a._fy;c.dc+=dc;c.dad+=dad;c.cc+=oc+ad-dc;c.cad+=cum-dad}
+  });
+  // journal entries
+  S.journal.forEach(j=>{
+    j._dr=sumA(j.lines.map(l=>+l.dr||0));j._cr=sumA(j.lines.map(l=>+l.cr||0));
+    const d=pd(j.date),bal=Math.abs(j._dr-j._cr)<0.005;
+    if(j.status!=='Posted'){j._msg='Draft – not in P&L';j._cls='b-draft';j._in=false}
+    else if(!bal){j._msg='Unbalanced – not in P&L';j._cls='b-bad';j._in=false}
+    else if(!d||d.getUTCFullYear()!==Y){j._msg=`Date outside ${Y} – not in P&L`;j._cls='b-amb';j._in=false}
+    else if(j._dr===0){j._msg='No amounts';j._cls='b-draft';j._in=false}
+    else{j._msg='Posted – included in P&L';j._cls='b-ok';j._in=true;
+      j.lines.forEach(l=>{const cat=CM[l.code]?.cat;if(!CM[l.code]&&l.code)post(l.code,d.getUTCMonth(),(+l.dr||0)-(+l.cr||0),'Journal',`${j.no} – ${l.desc||j.desc}`,j.id);
+        if(!cat||cat==='Balance Sheet')return;
+        const v=(cat==='Revenue'||cat==='Other Income')?(+l.cr||0)-(+l.dr||0):(+l.dr||0)-(+l.cr||0);
+        post(l.code,d.getUTCMonth(),v,'Journal',`${j.no} – ${l.desc||j.desc||'entry'}`,j.id)})}
+  });
+  const z=()=>Array(12).fill(0),T={};PLC.forEach(c=>T[c]=z());
+  const mpA={fte:z(),cost:z(),fee:z()};
+  S.manpower.forEach(f=>{if(!f._act)return;for(let m=0;m<12;m++){mpA.fte[m]+=f._c.fte[m];mpA.cost[m]+=f._c.cost[m];mpA.fee[m]+=f._c.fte[m]*f._rate}});
+  const uncP=POST.filter(p=>!CM[p.c]);
+  Object.entries(L).forEach(([c,arr])=>{const cat=CM[c]?.cat;if(T[cat])arr.forEach((v,m)=>T[cat][m]+=v)});
+  const gp=T.Revenue.map((v,m)=>v-T['Direct Cost'][m]);
+  const np=gp.map((v,m)=>v-T['Admin Expense'][m]+T['Other Income'][m]-T['Other Expense'][m]);
+  const avg=a=>sumA(a)/12;
+  const rev=sumA(T.Revenue),dc=sumA(T['Direct Cost']),ae=sumA(T['Admin Expense']),npT=sumA(np);
+  const cN=Object.values(cs).reduce((o,c)=>{for(const k in c)o[k]=(o[k]||0)+c[k];return o},{cc:0,cad:0});
+  R={L,T,gp,np,hc,ahc,cs,capex,depM,uncP,mp:mpA,
+    k:{rev,dc,gp:rev-dc,gpp:rev?(rev-dc)/rev:0,ae,np:npT,npp:rev?npT/rev:0,hc:avg(hc),ahc:avg(ahc),active:S.clients.filter(c=>c._hc>0).length,
+       rph:avg(hc)?rev/12/avg(hc):0,nph:avg(hc)?npT/12/avg(hc):0,rent:sumA(L[mp.rent]||z()),capex:sumA(capex),dep:sumA(depM),nbv:cN.cc-cN.cad,check:sumA(uncP.map(p=>Math.abs(p.v)))}};
+}
+
+/* ---------- helpers ---------- */
+const sumA=a=>a.reduce((x,y)=>x+y,0);
+const fmt=(v,d=0)=>{if(v==null||v==='')return '';const n=+v;if(!isFinite(n))return '';const s=Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});return n<0&&Math.round(Math.abs(n)*Math.pow(10,d))>0?`<span class="neg">(${s})</span>`:s};
+const pct=v=>(v*100).toFixed(1)+'%';
+const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+const $=id=>document.getElementById(id);
+const pick=(a,m)=>m<0?sumA(a):a[m];
+const mname=m=>m<0?'Full year '+S.settings.year:MONTHS[m]+' '+S.settings.year;
+const cell=(v,d)=>{const on=d&&Math.abs(v)>0.5;return `<td class="num${on?' lnk':''}"${on?` data-d="${d}"`:''}>${fmt(v)}</td>`};
+
+/* ---------- persistence ---------- */
+function clean(o){if(Array.isArray(o))return o.map(clean);if(o&&typeof o==='object'){const r={};for(const k in o)if(k[0]!=='_')r[k]=clean(o[k]);return r}return o}
+function setSv(ok){if(SPM.on)return;$('sv').className='';$('sv').textContent=ok?'● Auto-saved (local)':'○ Local only – click ☁ SharePoint to connect'}
+let svT;function scheduleSave(){clearTimeout(svT);SPM.pending=true;svT=setTimeout(saveNow,SPM.on?1200:500)}
+async function saveNow(){
+  SPM.pending=false;if(SPM.on)return spSave();
+  const js=JSON.stringify(clean(S));
+  if(window.storage){try{await window.storage.set('nps:state',js);setSv(true)}catch(e){setSv(false)}return}
+  try{localStorage.setItem('nps:state',js);setSv(true)}catch(e){setSv(false)}
+}
+async function getAtt(id){if(ATT[id])return ATT[id];
+  if(SPM.on){try{const it=await g(`/drives/${SPM.did}/items/${id}`),b=await (await fetch(it['@microsoft.graph.downloadUrl'])).blob(),d=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(b)});ATT[id]=d;return d}catch(e){return null}}
+  try{const r=await window.storage.get('nps:att:'+id);if(r&&r.value){ATT[id]=r.value;return r.value}}catch(e){}return null}
+/* ---------- SharePoint connection (Microsoft Graph: lists + document library) ----------
+   Admins can hard-code the values below instead of typing them in the ☁ SharePoint dialog. */
+const SP_PRESET={siteUrl:'https://mzaccountingnet.sharepoint.com',clientId:'46f00640-dd6b-4be5-8157-919c9ca297e0',tenantId:'b396b291-0de3-448d-b0a7-a792088d272c',prefix:'NPS'};
+const SPC=(()=>{let s={};try{s=JSON.parse(localStorage.getItem('nps:sp')||'{}')}catch(e){}return{siteUrl:'',clientId:'',tenantId:'',prefix:'NPS',...SP_PRESET,...s}})();
+const SPM={on:false,busy:false,dirty:false,pending:false,sid:'',did:'',lids:{},lib:'',scopes:['Sites.ReadWrite.All']};
+const GRAPH='https://graph.microsoft.com/v1.0',sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const IS_POPUP=!!window.opener&&window.opener!==window&&/[#&?](code|error)=/.test(location.hash+location.search);
+const defRedirect=()=>location.origin+location.pathname;
+const listTitle=n=>SPC.prefix+'_'+n;
+const rk=r=>r._k||(r._k=uid());
+const colsOf=a=>COLS[a].filter(c=>c.t!=='ro');
+const SPS={
+  cfg:{list:'Settings',cols:[{k:'value',l:'Value (JSON)',t:'text',ml:1}],items:()=>['settings','map','classes'].map(k=>({key:k,title:k,r:{value:JSON.stringify(S[k])}}))},
+  coa:{list:'ChartOfAccounts',cols:[{k:'code',l:'ERP Code',t:'text'},{k:'name',l:'Account Name',t:'text'},{k:'cat',l:'Category',t:'text'}],items:()=>S.coa.map(r=>({key:rk(r),title:r.code,r}))},
+  clients:{list:'Clients',get cols(){return colsOf('clients')},items:()=>S.clients.map(r=>({key:rk(r),title:r.name,r}))},
+  admin:{list:'AdminStaff',get cols(){return colsOf('admin')},items:()=>S.admin.map(r=>({key:rk(r),title:r.name||r.id,r}))},
+  opex:{list:'Opex',get cols(){return colsOf('opex')},items:()=>S.opex.map(r=>({key:rk(r),title:r.desc||r.code,r}))},
+  assets:{list:'FixedAssets',get cols(){return colsOf('assets')},items:()=>S.assets.map(r=>({key:rk(r),title:r.desc||r.id,r}))},
+  jrn:{list:'JournalEntries',cols:[{k:'no',l:'Entry No',t:'text'},{k:'date',l:'Date',t:'text'},{k:'ref',l:'Reference',t:'text'},{k:'desc',l:'Description',t:'text',ml:1},{k:'status',l:'Status',t:'text'},{k:'notes',l:'Notes',t:'text',ml:1}],items:()=>S.journal.map(j=>({key:j.id,title:j.no||j.id,r:j}))},
+  jl:{list:'JournalLines',cols:[{k:'entryKey',l:'Entry Key',t:'text'},{k:'entryNo',l:'Entry No',t:'text'},{k:'line',l:'Line',t:'num'},{k:'code',l:'ERP Code',t:'text'},{k:'desc',l:'Line Description',t:'text',ml:1},{k:'dr',l:'Debit',t:'num'},{k:'cr',l:'Credit',t:'num'}],
+    items:()=>{const o=[];S.journal.forEach(j=>j.lines.forEach((l,i)=>o.push({key:j.id+'#'+i,title:(j.no||'')+' #'+(i+1),r:{entryKey:j.id,entryNo:j.no,line:i+1,code:l.code,desc:l.desc,dr:l.dr,cr:l.cr}})));return o}},
+  /* manpower budget files: one row per company file + one row per employee (employee JSON kept whole) */
+  mpf:{list:'ManpowerFiles',cols:[{k:'file',l:'File',t:'text'},{k:'imported',l:'Imported',t:'text'},{k:'client',l:'Linked Client',t:'text'},{k:'company',l:'Company',t:'text'},{k:'meta',l:'Header (JSON)',t:'text',ml:1}],
+    items:()=>S.manpower.map(f=>{const {employees,...meta}=f.data;return{key:f.id,title:(f.data.company&&f.data.company.name)||f.file,r:{file:f.file,imported:f.imported,client:f.client,company:(f.data.company&&f.data.company.name)||'',meta:JSON.stringify(meta)}}})},
+  mpe:{list:'ManpowerEmployees',cols:[{k:'fileKey',l:'File Key',t:'text'},{k:'idx',l:'Row',t:'num'},{k:'name',l:'Employee',t:'text'},{k:'json',l:'Employee (JSON)',t:'text',ml:1}],
+    items:()=>{const o=[];S.manpower.forEach(f=>(f.data.employees||[]).forEach((e,i)=>o.push({key:f.id+'#'+i,title:e.name||('#'+(i+1)),r:{fileKey:f.id,idx:i,name:e.name||'',json:JSON.stringify(e)}})));return o}}
+};
+const LIB={list:'JournalAttachments',cols:[{k:'EntryKey',l:'Entry Key',t:'text'},{k:'EntryNo',l:'Entry No',t:'text'}]};
+const SNAP={};
+const fieldsOf=(sp,it,ord)=>{const f={Title:String(it.title||'-').slice(0,250),NPS_RowKey:it.key,NPS_Sort:ord};
+  sp.cols.forEach(c=>{const v=it.r[c.k];f['NPS_'+c.k]=c.t==='num'?(v===''||v==null||!isFinite(+v)?null:+v):(v==null?'':String(v))});return f};
+const decodeRow=(sp,f)=>{const r={};sp.cols.forEach(c=>{const v=f['NPS_'+c.k];r[c.k]=c.t==='num'?(v==null||v===''?'':+v):(v==null?'':String(v))});return r};
+
+function setStat(k,msg){const e=$('sv'),u=SPM.user?' · '+SPM.user:'';
+  const m={load:['','⟳ Loading from SharePoint…'],sync:['','⟳ Saving to SharePoint…'],ok:['ok','● Saved to SharePoint'+u],err:['err','⚠ SharePoint: '+(msg||'error')],auth:['','○ SharePoint: sign in required'],miss:['err','⚠ SharePoint lists not found']}[k];
+  e.className=m[0];e.textContent=m[1]}
+async function msalInit(){
+  if(!window.msal)throw new Error('The Microsoft sign-in library did not load (check internet access to cdn.jsdelivr.net).');
+  const key=SPC.clientId+'|'+SPC.tenantId;if(SPM.app&&SPM.appKey===key)return SPM.app;
+  const app=new msal.PublicClientApplication({auth:{clientId:SPC.clientId,authority:'https://login.microsoftonline.com/'+(SPC.tenantId||'organizations'),redirectUri:defRedirect()},cache:{cacheLocation:'localStorage'}});
+  if(app.initialize)await app.initialize();SPM.app=app;SPM.appKey=key;return app;
+}
+async function tok(scopes,interactive=true){
+  const app=await msalInit(),acct=app.getActiveAccount()||app.getAllAccounts()[0];
+  if(acct){try{const r=await app.acquireTokenSilent({scopes,account:acct});app.setActiveAccount(r.account);SPM.user=r.account.username;return r.accessToken}catch(e){if(!interactive)throw e}}
+  else if(!interactive)throw Object.assign(new Error('not signed in'),{auth:1});
+  const r=await app.acquireTokenPopup({scopes,account:acct||undefined,prompt:acct?undefined:'select_account'});app.setActiveAccount(r.account);SPM.user=r.account.username;return r.accessToken;
+}
+async function g(path,o={}){
+  for(let a=0;;a++){
+    const t=await tok(SPM.scopes),isB=typeof Blob!=='undefined'&&o.body instanceof Blob;
+    const r=await fetch(path.startsWith('http')?path:GRAPH+path,{method:o.method||'GET',headers:{Authorization:'Bearer '+t,...(o.body!=null&&!isB?{'Content-Type':'application/json'}:{}),...(o.headers||{})},body:o.body==null?undefined:(isB?o.body:JSON.stringify(o.body))});
+    if((r.status===429||r.status===503)&&a<5){await sleep((+r.headers.get('Retry-After')||2)*1000);continue}
+    if(r.status===204)return null;
+    const j=await r.json().catch(()=>null);
+    if(!r.ok){const e=new Error((j&&j.error&&j.error.message)||('HTTP '+r.status));e.status=r.status;throw e}
+    return j;
+  }
+}
+async function gAll(path){let out=[];while(path){const j=await g(path);out=out.concat(j.value||[]);path=j['@odata.nextLink']}return out}
+async function batch(reqs){ // reqs: {m,u,b,done}
+  for(let i=0;i<reqs.length;i+=20){
+    let todo=reqs.slice(i,i+20);
+    for(let a=0;todo.length;a++){
+      const j=await g('/$batch',{method:'POST',body:{requests:todo.map((q,n)=>({id:String(n),method:q.m,url:q.u,headers:q.b?{'Content-Type':'application/json'}:undefined,body:q.b}))}});
+      const retry=[];let wait=0;
+      for(const r of j.responses){const q=todo[+r.id];
+        if(r.status>=200&&r.status<300)q.done&&q.done(r);
+        else if((r.status===429||r.status===503||r.status===504)&&a<5){retry.push(q);wait=Math.max(wait,+(r.headers&&r.headers['Retry-After'])||2)}
+        else throw new Error(((r.body&&r.body.error&&r.body.error.message)||('HTTP '+r.status))+' ('+q.m+')')}
+      todo=retry;if(todo.length)await sleep(wait*1000);
+    }
+  }
+}
+
+async function spResolve(){
+  const u=new URL(SPC.siteUrl),p=u.pathname.replace(/\/+$/,'');
+  const site=await g(p?`/sites/${u.hostname}:${p}`:`/sites/${u.hostname}`);SPM.sid=site.id;SPM.lids={};const miss=[];
+  const look=async(name)=>{try{return (await g(`/sites/${SPM.sid}/lists/${encodeURIComponent(listTitle(name))}`)).id}catch(e){if(e.status===404||e.status===400)return null;throw e}};
+  for(const [n,sp] of Object.entries(SPS)){const id=await look(sp.list);if(id)SPM.lids[n]=id;else miss.push(listTitle(sp.list))}
+  const lid=await look(LIB.list);if(lid){SPM.lib=lid;SPM.did=(await g(`/sites/${SPM.sid}/lists/${lid}/drive`)).id}else miss.push(listTitle(LIB.list));
+  return miss;
+}
+async function spConnect(interactive){
+  SPM.on=false;
+  if(!SPC.clientId||!SPC.siteUrl){setStat('auth');return false}
+  try{
+    setStat('load');SPM.scopes=['Sites.ReadWrite.All'];
+    await tok(SPM.scopes,interactive);
+    const miss=await spResolve();
+    if(miss.length){setStat('miss');spOpen('These SharePoint lists / library were not found on the site:\n • '+miss.join('\n • ')+'\n\nClick “Create lists & library” (you must be a site owner).','err');return false}
+    await spLoad();SPM.on=true;setStat('ok');if(SPM.seed){SPM.seed=false;await spSave()}return true;
+  }catch(e){if(e.auth||/interaction_required|login_required|no_account|not signed in/i.test(e.errorCode||e.message)){setStat('auth');return false}setStat('err',e.message);spOpen('Could not connect: '+e.message,'err');return false}
+}
+async function spLoad(){
+  const data={};
+  for(const [n,sp] of Object.entries(SPS)){
+    const items=await gAll(`/sites/${SPM.sid}/lists/${SPM.lids[n]}/items?expand=fields&$top=500`),snap=new Map();
+    const rows=items.map(it=>({id:it.id,f:it.fields||{}})).sort((a,b)=>(+a.f.NPS_Sort||0)-(+b.f.NPS_Sort||0));
+    data[n]=rows.map(({id,f})=>{const key=f.NPS_RowKey||'sp'+id,r=decodeRow(sp,f);snap.set(key,{id,h:null});r._k=key;return{key,r}});
+    SNAP[n]=snap;
+  }
+  // attachments
+  const atts={};
+  const li=await gAll(`/sites/${SPM.sid}/lists/${SPM.lib}/items?expand=fields,driveItem&$top=200`);
+  li.forEach(it=>{const d=it.driveItem,k=it.fields&&it.fields.NPS_EntryKey;if(d&&d.file&&k)(atts[k]=atts[k]||[]).push({id:d.id,name:d.name,type:d.file.mimeType||'',size:d.size||0,added:d.createdDateTime||''})});
+  if(!data.cfg.length){ // brand-new lists: seed them from the current model
+    SPM.seed=true;return}
+  const cfg={};data.cfg.forEach(x=>{try{cfg[x.key]=JSON.parse(x.r.value)}catch(e){}});
+  const jl={};data.jl.forEach(x=>{(jl[x.r.entryKey]=jl[x.r.entryKey]||[]).push(x.r)});
+  const journal=data.jrn.map(x=>({...x.r,id:x.key,lines:(jl[x.key]||[]).map(l=>({code:l.code,desc:l.desc,dr:l.dr,cr:l.cr})),att:atts[x.key]||[]}));
+  const emp={};data.mpe.forEach(x=>{try{(emp[x.r.fileKey]=emp[x.r.fileKey]||[]).push([+x.r.idx||0,JSON.parse(x.r.json)])}catch(e){}});
+  const manpower=data.mpf.map(x=>{let meta={};try{meta=JSON.parse(x.r.meta)}catch(e){}return{id:x.key,file:x.r.file,imported:x.r.imported,client:x.r.client,data:{...meta,employees:(emp[x.key]||[]).sort((a,b)=>a[0]-b[0]).map(a=>a[1])}}});
+  applyState({settings:cfg.settings,map:cfg.map,classes:cfg.classes,coa:data.coa.map(x=>x.r),clients:data.clients.map(x=>x.r),admin:data.admin.map(x=>x.r),opex:data.opex.map(x=>x.r),assets:data.assets.map(x=>x.r),journal,manpower});
+  JE=null;compute();spBaseline();show(TAB);
+}
+function spBaseline(){ // remember what SharePoint already holds so only real changes are written
+  for(const [n,sp] of Object.entries(SPS)){let ord=0;for(const it of sp.items()){const s=SNAP[n].get(it.key);if(s)s.h=JSON.stringify(fieldsOf(sp,it,ord));ord++}}
+}
+async function spPush(){
+  const reqs=[];
+  for(const [n,sp] of Object.entries(SPS)){
+    const snap=SNAP[n]||(SNAP[n]=new Map()),seen=new Set(),base=`/sites/${SPM.sid}/lists/${SPM.lids[n]}/items`;let ord=0;
+    for(const it of sp.items()){
+      seen.add(it.key);const f=fieldsOf(sp,it,ord++),h=JSON.stringify(f),s=snap.get(it.key);
+      if(!s)reqs.push({m:'POST',u:base,b:{fields:f},done:r=>snap.set(it.key,{id:r.body.id,h})});
+      else if(s.h!==h)reqs.push({m:'PATCH',u:`${base}/${s.id}/fields`,b:f,done:()=>{s.h=h}});
+    }
+    for(const [k,s] of snap)if(!seen.has(k))reqs.push({m:'DELETE',u:`${base}/${s.id}`,done:()=>snap.delete(k)});
+  }
+  if(reqs.length)await batch(reqs);
+}
+async function spSave(){
+  if(SPM.busy){SPM.dirty=true;return}
+  SPM.busy=true;clearTimeout(SPM.retry);
+  try{do{SPM.dirty=false;setStat('sync');await spPush()}while(SPM.dirty);setStat('ok')}
+  catch(e){setStat('err','not saved – '+e.message+' (retrying)');SPM.retry=setTimeout(spSave,15000)}
+  finally{SPM.busy=false}
+}
+const safeName=s=>String(s||'file').replace(/[\\\/:*?"<>|#%~]/g,'_').trim()||'file';
+async function spUpload(j,file){
+  const it=await g(`/drives/${SPM.did}/root:/${encodeURIComponent(safeName(j.no||j.id))}/${encodeURIComponent(safeName(file.name))}:/content?@microsoft.graph.conflictBehavior=rename`,{method:'PUT',body:file,headers:{'Content-Type':file.type||'application/octet-stream'}});
+  await g(`/drives/${SPM.did}/items/${it.id}/listItem/fields`,{method:'PATCH',body:{NPS_EntryKey:j.id,NPS_EntryNo:j.no||''}});
+  return it;
+}
+const spDelFile=id=>g(`/drives/${SPM.did}/items/${id}`,{method:'DELETE'});
+async function spProvision(say){
+  SPM.scopes=['Sites.Manage.All'];
+  try{
+    await tok(SPM.scopes,true);say('Connected. Checking lists…');
+    if(!SPM.sid)await spResolve();
+    const mk=(name,l,c)=>({name,displayName:l,...(c.t==='num'?{number:{}}:c.ml?{text:{allowMultipleLines:true,textType:'plain'}}:{text:{maxLength:255}})});
+    const ensure=async(title,tmpl,cols)=>{
+      let l;try{l=await g(`/sites/${SPM.sid}/lists/${encodeURIComponent(title)}`)}catch(e){if(e.status!==404&&e.status!==400)throw e;l=await g(`/sites/${SPM.sid}/lists`,{method:'POST',body:{displayName:title,list:{template:tmpl}}});say('Created '+title)}
+      const have=new Set((await gAll(`/sites/${SPM.sid}/lists/${l.id}/columns`)).map(c=>c.name));
+      for(const c of cols)if(!have.has(c.name)){await g(`/sites/${SPM.sid}/lists/${l.id}/columns`,{method:'POST',body:c})}
+      return l.id;
+    };
+    for(const sp of Object.values(SPS))await ensure(listTitle(sp.list),'genericList',[{name:'NPS_RowKey',displayName:'Row Key',indexed:true,text:{maxLength:255}},{name:'NPS_Sort',displayName:'Sort',number:{}},...sp.cols.map(c=>mk('NPS_'+c.k,c.l,c))]);
+    await ensure(listTitle(LIB.list),'documentLibrary',LIB.cols.map(c=>mk('NPS_'+c.k,c.l,c)));
+    say('All lists and the library are ready.');
+  }finally{SPM.scopes=['Sites.ReadWrite.All']}
+}
+
+/* ---- SharePoint dialog ---- */
+function spOpen(msg,cls){
+  $('sp_site').value=SPC.siteUrl;$('sp_client').value=SPC.clientId;$('sp_tenant').value=SPC.tenantId;$('sp_prefix').value=SPC.prefix;$('sp_redir').value=defRedirect();
+  spSay(msg||(SPM.on?'Connected as '+(SPM.user||'')+'. Changes save to SharePoint automatically.':'Not connected – the model is working locally only.'),cls||(SPM.on?'ok':''));
+  $('sphelp').innerHTML='<b>One-time setup:</b> (1) Entra ID → App registrations → New → platform <i>Single-page application</i> with the redirect URI above; add delegated Microsoft Graph permissions <i>Sites.ReadWrite.All</i> (and <i>Sites.Manage.All</i> once, to create the lists). (2) Open this page from that https address (or http://localhost). (3) Enter site URL + App ID, Save &amp; sign in, then Create lists &amp; library.';
+  $('spm').style.display='flex';
+}
+function spClose(){$('spm').style.display='none'}
+function spSay(t,c){const e=$('spmsg');e.textContent=t;e.className='spmsg'+(c?' '+c:'')}
+function spRead(){SPC.siteUrl=$('sp_site').value.trim();SPC.clientId=$('sp_client').value.trim();SPC.tenantId=$('sp_tenant').value.trim();SPC.prefix=($('sp_prefix').value.trim()||'NPS').replace(/[^A-Za-z0-9]/g,'');
+  try{localStorage.setItem('nps:sp',JSON.stringify(SPC))}catch(e){}}
+async function spSaveConnect(){
+  spRead();if(!SPC.siteUrl||!SPC.clientId){spSay('Enter the site URL and App (client) ID.','err');return}
+  try{new URL(SPC.siteUrl)}catch(e){spSay('The site URL is not valid.','err');return}
+  SPM.app=null;spSay('Signing in…');
+  if(await spConnect(true))spSay('Connected as '+SPM.user+'. Changes now save to SharePoint automatically.','ok');
+}
+async function spDoProvision(){
+  spRead();if(!SPC.siteUrl||!SPC.clientId){spSay('Enter the site URL and App (client) ID first.','err');return}
+  const log=[];const say=t=>{log.push(t);spSay(log.join('\n'))};
+  try{await spProvision(say);say('Loading…');await spConnect(true);if(SPM.on){await spSave();say('Done – the current model was written to SharePoint.')}}
+  catch(e){spSay('Could not create lists: '+e.message+'\n(You need Site Owner rights and consent for Sites.Manage.All. Alternatively ask a site owner to run this once.)','err')}
+}
+async function spReload(){
+  if(!SPM.on){spSay('Not connected.','err');return}
+  if(!confirm('Replace what you see with the latest data from SharePoint? Unsaved local edits are lost.'))return;
+  try{setStat('load');await spLoad();setStat('ok');spSay('Reloaded from SharePoint.','ok')}catch(e){setStat('err',e.message);spSay(e.message,'err')}
+}
+async function spSignOut(){
+  try{if(SPM.app){const a=SPM.app.getActiveAccount()||SPM.app.getAllAccounts()[0];if(a)await SPM.app.logoutPopup({account:a,postLogoutRedirectUri:defRedirect()})}}catch(e){}
+  SPM.on=false;SPM.user='';setSv(!!window.storage);spSay('Signed out. Working locally.');
+}
+window.addEventListener('beforeunload',e=>{if(SPM.on&&(SPM.busy||SPM.dirty||SPM.pending)){e.preventDefault();e.returnValue=''}});
+const normJ=j=>({id:j.id||uid(),no:j.no||'',date:j.date||'',ref:j.ref||'',desc:j.desc||'',status:j.status||'Draft',lines:(j.lines||[]).map(l=>({code:l.code||'',name:'',desc:l.desc||'',dr:l.dr??'',cr:l.cr??''})),notes:j.notes||'',att:(j.att||[]).map(a=>({id:a.id,name:a.name,type:a.type||'',size:a.size||0,added:a.added||''}))});
+function applyState(j){const d=initial();S={settings:{...d.settings,...j.settings},map:{...d.map,...j.map},coa:j.coa||d.coa,journal:(j.journal||[]).map(normJ),classes:j.classes||d.classes,clients:j.clients||d.clients,admin:j.admin||d.admin,opex:j.opex||d.opex,assets:j.assets||d.assets,
+  manpower:(j.manpower||[]).filter(f=>f&&f.data&&Array.isArray(f.data.employees)).map(f=>({id:f.id||uid(),file:f.file||'',imported:f.imported||'',client:f.client||'',data:f.data}))};
+  NEWCOA.forEach(a=>{if(!S.coa.some(x=>x.code===a[0]))S.coa.push({code:a[0],name:a[1],cat:a[2]})})}
+function commit(){compute();updateCalc();const sm=$('sum');if(sm)sm.innerHTML=summaryFor(TAB);$('ttl').textContent='Budget FY '+S.settings.year+' – '+S.settings.company;if(TAB==='journal'&&JE!=null)jRefresh();scheduleSave()}
+
+/* ---------- editable tables ---------- */
+const DEF={clients:{name:'New client',billing:'Fee Only',fee:0,eosb:'Paid by Client',visa:'No',contract:0,actual:0,pct:'',company:'',notes:''},
+admin:{id:'',name:'',desig:'',dept:'',join:'',exit:'',basic:0,housing:0,transport:0,other:0,inc:'',incM:''},
+opex:{code:'',name:'',desc:'',method:'Monthly',amt:0,start:'',end:''},
+assets:{id:'',desc:'',cls:'Furniture & Fixtures',date:'',cost:0,res:0,life:'',openAD:'',disp:''}};
+const COLS={
+clients:[{k:'name',l:'Client',t:'text'},{k:'billing',l:'Billing Type',t:'sel',o:['Fee Only','Salary + Fee']},{k:'fee',l:'Fee / Head / Month',t:'num'},{k:'eosb',l:'EOSB Treatment',t:'sel',o:['Company Cost','Recharge to Client','Paid by Client']},{k:'visa',l:'Visa Cost by NPS',t:'sel',o:['Yes','No']},{k:'contract',l:'Contract Workers',t:'num'},{k:'actual',l:'Latest Actual HC',t:'num'},{k:'pct',l:'% of Contract',t:'num'},{k:'company',l:'Company',t:'text'},{k:'notes',l:'Notes',t:'text'}],
+admin:[{k:'id',l:'Emp ID',t:'text'},{k:'name',l:'Employee',t:'text'},{k:'desig',l:'Designation',t:'text'},{k:'dept',l:'Department',t:'text'},{k:'join',l:'Joining Date',t:'date'},{k:'exit',l:'Exit Date',t:'date'},{k:'basic',l:'Basic',t:'num'},{k:'housing',l:'Housing',t:'num'},{k:'transport',l:'Transport',t:'num'},{k:'other',l:'Other Allow.',t:'num'},{k:'inc',l:'Increment % (0.05)',t:'num'},{k:'incM',l:'Incr. Month (1-12)',t:'num'}],
+opex:[{k:'code',l:'ERP Code (search code or name)',t:'acct'},{k:'name',l:'Account Name (from COA)',t:'ro',f:r=>r.code?(CM[r.code]?esc(r.name):'<span class="neg">Not in Chart of Accounts</span>'):''},{k:'desc',l:'Description',t:'text'},{k:'method',l:'Method',t:'sel',o:['Monthly','Annual (spread)','One-off','Per Manpower Head','Per Admin Head']},{k:'amt',l:'Amount',t:'num'},{k:'start',l:'Start Month',t:'num'},{k:'end',l:'End Month',t:'num'}],
+assets:[{k:'id',l:'Asset ID',t:'text'},{k:'desc',l:'Description',t:'text'},{k:'cls',l:'Asset Class',t:'sel',o:()=>Object.keys(S.classes)},{k:'date',l:'Purchase Date',t:'date'},{k:'cost',l:'Cost',t:'num'},{k:'res',l:'Residual',t:'num'},{k:'life',l:'Life (yrs)',t:'num'},{k:'openAD',l:'Opening Acc Dep',t:'num'},{k:'disp',l:'Disposal Date',t:'date'}]};
+const CALC={
+clients:[{l:'Budget HC',f:r=>fmt(r._hc)},{l:'Monthly Fee',f:r=>fmt(r._fee)},{l:'FY Fee Revenue',f:r=>fmt(r._fyFee)},{l:'Source',f:r=>r._mp?'Manpower file':'Manual HC'},{l:'FY Visa Cost',f:r=>fmt(r._visa)}],
+admin:[{l:'Current Salary',f:r=>fmt(r._cur)},{l:'After Increment',f:r=>fmt(r._after)},{l:'FY Salary',f:r=>fmt(r._fySal)},{l:'FY EOSB Cost',f:r=>fmt(r._fyEosb)}],
+opex:[{l:'FY Total',f:r=>fmt(r._fy)}],
+assets:[{l:'Monthly Dep',f:r=>fmt(r._md)},{l:'FY Depreciation',f:r=>fmt(r._fy)},{l:'Closing Acc Dep',f:r=>fmt(r._cad)},{l:'Closing NBV',f:r=>fmt(r._nbv)}]};
+function inp(a,i,c,v){
+  const at=`data-a="${a}" data-i="${i}" data-k="${c.k}"`;
+  if(c.t==='sel'){const o=typeof c.o==='function'?c.o():c.o;return `<select ${at}>${o.map(x=>`<option${x===v?' selected':''}>${esc(x)}</option>`).join('')}</select>`}
+  if(c.t==='acct')return `<input class="acct" data-f="pl" ${at} value="${esc(v)}" placeholder="Search code or name…" autocomplete="off">`;
+  return `<input ${at} type="${c.t==='num'?'number':c.t==='date'?'date':'text'}" ${c.t==='num'?'step="any"':''} value="${esc(v)}">`;
+}
+function tbl(a){
+  const cols=COLS[a],calc=CALC[a];
+  let h='<div class="tw"><table><thead><tr>'+cols.map(c=>`<th>${c.l}</th>`).join('')+calc.map(c=>`<th class="ch num">${c.l}</th>`).join('')+'<th></th></tr></thead><tbody>';
+  S[a].forEach((r,i)=>{h+='<tr>'+cols.map(c=>c.t==='ro'?`<td class="roc" data-ra="${a}" data-ri="${i}" data-rk="${c.k}">${c.f(r)}</td>`:`<td>${inp(a,i,c,r[c.k])}</td>`).join('')+calc.map((c,j)=>`<td class="calc" data-ca="${a}" data-ci="${i}" data-cj="${j}"></td>`).join('')+`<td><button class="x" title="Delete row" onclick="delRow('${a}',${i})">✕</button></td></tr>`});
+  return h+`</tbody></table></div><button class="btn" onclick="addRow('${a}')">+ Add row</button>`;
+}
+function updateCalc(){
+  document.querySelectorAll('td.calc').forEach(td=>{const r=S[td.dataset.ca][+td.dataset.ci];if(r)td.innerHTML=CALC[td.dataset.ca][+td.dataset.cj].f(r)});
+  document.querySelectorAll('td.roc[data-ra]').forEach(td=>{const r=S[td.dataset.ra][+td.dataset.ri];if(r)td.innerHTML=COLS[td.dataset.ra].find(c=>c.k===td.dataset.rk).f(r)});
+}
+function addRow(a){S[a].push({...DEF[a]});commit();show(TAB)}
+function delRow(a,i){S[a].splice(i,1);commit();show(TAB)}
+
+/* ---------- account picker (search by code or name) ---------- */
+const DD=$('dd');let ddInp=null;
+function curCode(inp){const d=inp.dataset;if(d.a)return S[d.a][+d.i][d.k]||'';if(d.jl!==undefined)return S.journal[JE].lines[+d.jl].code||'';if(d.map)return S.map[d.map]||'';return ''}
+function openDD(inp,all){
+  ddInp=inp;const q=all?'':inp.value.trim().toLowerCase(),pl=inp.dataset.f==='pl';
+  let list=S.coa.filter(a=>(!pl||a.cat!=='Balance Sheet')&&(!q||(a.code+' '+a.name+' '+a.cat).toLowerCase().includes(q)));
+  list.sort((x,y)=>(y.code.toLowerCase().startsWith(q)?1:0)-(x.code.toLowerCase().startsWith(q)?1:0));
+  DD.innerHTML=list.slice(0,80).map(a=>`<div class="ddi" data-code="${esc(a.code)}"><b>${esc(a.code)}</b> ${esc(a.name)} <span>${a.cat}</span></div>`).join('')||'<div class="ddn">No matching account – add it under Chart of Accounts</div>';
+  const r=inp.getBoundingClientRect();DD.style.display='block';DD.style.minWidth=Math.max(r.width,380)+'px';DD.style.left=Math.min(r.left,innerWidth-400)+'px';
+  DD.style.top=(r.bottom+262>innerHeight&&r.top>270?r.top-Math.min(262,DD.offsetHeight)-2:r.bottom+2)+'px';
+}
+function closeDD(){DD.style.display='none';ddInp=null}
+function choose(inp,code){
+  const d=inp.dataset,a=CM[code];
+  if(d.a){S[d.a][+d.i][d.k]=code;S[d.a][+d.i].name=a?a.name:''}
+  else if(d.jl!==undefined){const l=S.journal[JE].lines[+d.jl];l.code=code;l.name=a?a.name:''}
+  else if(d.map)S.map[d.map]=code;
+  inp.value=code;closeDD();commit();if(d.map)show('settings')
+}
+document.addEventListener('focusin',e=>{if(e.target.classList?.contains('acct')){e.target.select();openDD(e.target,true)}});
+document.addEventListener('input',e=>{if(e.target.classList?.contains('acct'))openDD(e.target,false)});
+document.addEventListener('mousedown',e=>{const it=e.target.closest?.('.ddi');if(it&&ddInp){e.preventDefault();choose(ddInp,it.dataset.code)}});
+document.addEventListener('focusout',e=>{const inp=e.target;if(!inp.classList?.contains('acct'))return;setTimeout(()=>{if(document.activeElement===inp)return;
+  const v=inp.value.trim().toLowerCase(),cur=curCode(inp),ex=S.coa.find(a=>a.code.toLowerCase()===v);closeDD();
+  if(ex&&ex.code!==cur)choose(inp,ex.code);else inp.value=cur},130)});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){closeDD();closeModal();return}
+  if(!ddInp||DD.style.display!=='block'||e.target!==ddInp)return;
+  const items=[...DD.querySelectorAll('.ddi')];let i=items.findIndex(x=>x.classList.contains('hl'));
+  if(e.key==='ArrowDown'){e.preventDefault();i=Math.min(items.length-1,i+1)}else if(e.key==='ArrowUp'){e.preventDefault();i=Math.max(0,i-1)}
+  else if(e.key==='Enter'){e.preventDefault();const it=items[i>=0?i:0];if(it)choose(ddInp,it.dataset.code);return}else return;
+  items.forEach((x,j)=>x.classList.toggle('hl',j===i));items[i]?.scrollIntoView({block:'nearest'});
+});
+window.addEventListener('scroll',closeDD,true);
+
+/* ---------- change handler ---------- */
+document.addEventListener('change',e=>{
+  const t=e.target,d=t.dataset;
+  if(t.classList.contains('acct'))return;
+  if(d.a){const c=COLS[d.a].find(x=>x.k===d.k);let v=t.value;if(c.t==='num')v=v===''?'':+v;S[d.a][+d.i][d.k]=v}
+  else if(d.s){S.settings[d.s]=t.type==='number'?(t.value===''?0:+t.value):t.value}
+  else if(d.cl){S.classes[d.cl].life=+t.value||3}
+  else if(d.j){S.journal[JE][d.j]=t.value}
+  else if(d.jl!==undefined){const l=S.journal[JE].lines[+d.jl];l[d.jk]=(d.jk==='dr'||d.jk==='cr')?(t.value===''?'':+t.value):t.value}
+  else if(d.c!==undefined){coaEdit(t);return}
+  else return;
+  commit();
+});
+
+/* ---------- Chart of Accounts CRUD ---------- */
+function usage(code){
+  const o=S.opex.filter(x=>x.code===code).length,j=S.journal.reduce((n,e)=>n+e.lines.filter(l=>l.code===code).length,0);
+  const c=Object.values(S.classes).filter(x=>x.cost===code||x.ad===code||x.dep===code).length,m=Object.values(S.map).filter(x=>x===code).length;
+  return {o,j,c,m,n:o+j+c+m};
+}
+function renameCode(o,n){
+  S.opex.forEach(x=>{if(x.code===o)x.code=n});S.journal.forEach(j=>j.lines.forEach(l=>{if(l.code===o)l.code=n}));
+  Object.values(S.classes).forEach(c=>['cost','ad','dep'].forEach(k=>{if(c[k]===o)c[k]=n}));
+  Object.keys(S.map).forEach(k=>{if(S.map[k]===o)S.map[k]=n});
+}
+function coaEdit(t){
+  const i=+t.dataset.c,k=t.dataset.ck,a=S.coa[i];let v=t.value.trim();
+  if(k==='code'){
+    if(!v||S.coa.some((x,j)=>j!==i&&x.code===v)){alert(!v?'Code cannot be empty.':`Code ${v} already exists.`);t.value=a.code;return}
+    if(v!==a.code)renameCode(a.code,v);
+  }
+  a[k]=v;const tr=t.closest('tr');tr.dataset.q=(a.code+' '+a.name+' '+a.cat).toLowerCase();
+  commit();
+}
+function addAcct(){let n=1;while(S.coa.some(a=>a.code==='NEW-'+n))n++;S.coa.unshift({code:'NEW-'+n,name:'',cat:'Admin Expense'});commit();show('coa');const f=document.querySelector('#coat input[data-ck="name"]');if(f)f.focus()}
+function delAcct(i){
+  const a=S.coa[i],u=usage(a.code);
+  const msg=u.n?`Account ${a.code} is used in: Opex ${u.o}, journal lines ${u.j}, asset classes ${u.c}, mappings ${u.m}.\nDelete anyway? Those rows will show as "not in Chart of Accounts".`:`Delete account ${a.code} – ${a.name}?`;
+  if(!confirm(msg))return;S.coa.splice(i,1);commit();show('coa');
+}
+function filterCoa(q){q=q.toLowerCase();document.querySelectorAll('#coat tbody tr').forEach(r=>r.style.display=r.dataset.q.includes(q)?'':'none')}
+function coaView(){
+  return `<p class="note">Add, edit or delete accounts. Changing a code automatically updates Opex, journal lines, asset classes and the Settings mapping. The account picker everywhere searches this list by code or name.</p>
+  <div class="tools"><input type="text" placeholder="Search code, name or category…" oninput="filterCoa(this.value)"><button class="btn" onclick="addAcct()">+ Add account</button><span class="note">${S.coa.length} accounts</span></div>
+  <div class="tw"><table id="coat"><thead><tr><th>ERP Code</th><th>Account Name</th><th>Category</th><th>Used in</th><th></th></tr></thead><tbody>${S.coa.map((a,i)=>{const u=usage(a.code);
+    return `<tr data-q="${esc((a.code+' '+a.name+' '+a.cat).toLowerCase())}"><td><input data-c="${i}" data-ck="code" value="${esc(a.code)}"></td><td><input data-c="${i}" data-ck="name" value="${esc(a.name)}" style="min-width:280px"></td><td><select data-c="${i}" data-ck="cat">${CATS.map(c=>`<option${c===a.cat?' selected':''}>${c}</option>`).join('')}</select></td><td class="roc">${u.n?`Opex ${u.o} · JE lines ${u.j} · Classes/Map ${u.c+u.m}`:'—'}</td><td><button class="x" onclick="delAcct(${i})">✕</button></td></tr>`}).join('')}</tbody></table></div>`;
+}
+
+/* ---------- drill-down ---------- */
+let MS=[];
+const cn=(h,n)=>({h,n});
+const Mo=(title,sub,cols,rows,total)=>({title,sub,cols,rows,total});
+function dAcct(code,m){
+  const a=CM[code],ps=POST.filter(p=>p.c===code&&(m<0||p.m===m));
+  const t=`${code} – ${a?a.name:'Unknown account'}`,s=`${a?a.cat:'Not in Chart of Accounts'} · ${mname(m)} · ${ps.length} posting${ps.length===1?'':'s'}`;
+  if(m<0){
+    const g={};ps.forEach(p=>{const k=p.src+'|'+p.ref;(g[k]=g[k]||{s:p.src,r:p.ref,je:p.je,a:Array(12).fill(0)}).a[p.m]+=p.v});
+    const tot=Array(12).fill(0);ps.forEach(p=>tot[p.m]+=p.v);
+    return Mo(t,s,[cn('Source'),cn('Reference'),...MONTHS.map(x=>cn(x,1)),cn('FY',1)],Object.values(g).map(x=>({c:[x.s,esc(x.r),...x.a.map(v=>fmt(v)),fmt(sumA(x.a))],d:x.je?'je|'+x.je:''})),['','Total',...tot.map(v=>fmt(v)),fmt(sumA(tot))]);
+  }
+  return Mo(t,s,[cn('Source'),cn('Reference'),cn('Amount',1)],ps.map(p=>({c:[p.src,esc(p.ref),fmt(p.v)],d:p.je?'je|'+p.je:''})),['','Total',fmt(sumA(ps.map(p=>p.v)))]);
+}
+function dCat(cat,m){
+  const items=Object.keys(R.L).map(c=>({c,n:CM[c]?.name||'Unknown',v:pick(R.L[c],m),cat:CM[c]?.cat})).filter(x=>x.cat===cat&&Math.abs(x.v)>0.5).sort((a,b)=>Math.abs(b.v)-Math.abs(a.v));
+  const tot=sumA(items.map(x=>x.v));
+  return Mo(cat,`${mname(m)} · click an account for its postings`,[cn('ERP Code'),cn('Account'),cn('Amount',1),cn('% of total',1)],items.map(x=>({c:[x.c,esc(x.n),fmt(x.v),tot?pct(x.v/tot):''],d:`acct|${x.c}|${m}`})),['','Total',fmt(tot),'']);
+}
+function dGP(m){const rv=pick(R.T.Revenue,m),dc=pick(R.T['Direct Cost'],m);
+  return Mo('Gross Profit',mname(m),[cn('Component'),cn('Amount',1)],[{c:['Revenue',fmt(rv)],d:`cat|Revenue|${m}`},{c:['Less: Direct Costs',fmt(-dc)],d:`cat|Direct Cost|${m}`}],['Gross Profit',fmt(rv-dc)])}
+function dNP(m){const g=pick(R.gp,m),ad=pick(R.T['Admin Expense'],m),oi=pick(R.T['Other Income'],m),oe=pick(R.T['Other Expense'],m);
+  return Mo('Net Profit',mname(m),[cn('Component'),cn('Amount',1)],[{c:['Gross Profit',fmt(g)],d:`gp|_|${m}`},{c:['Less: Admin Expenses',fmt(-ad)],d:`cat|Admin Expense|${m}`},{c:['Add: Other Income',fmt(oi)],d:`cat|Other Income|${m}`},{c:['Less: Other Expenses',fmt(-oe)],d:`cat|Other Expense|${m}`}],['Net Profit',fmt(g-ad+oi-oe)])}
+function dTC(m){const dc=pick(R.T['Direct Cost'],m),ad=pick(R.T['Admin Expense'],m);
+  return Mo('Total costs',mname(m),[cn('Component'),cn('Amount',1)],[{c:['Direct Costs',fmt(dc)],d:`cat|Direct Cost|${m}`},{c:['Admin Expenses',fmt(ad)],d:`cat|Admin Expense|${m}`}],['Total costs',fmt(dc+ad)])}
+function dHC(m){
+  const rows=S.clients.filter(c=>c._hc>0).map(c=>({c:['Manpower',esc(c.name),fmt(c._hc)]}));
+  const ad=S.admin.map(a=>({n:a.name||a.id,v:m<0?a._sal.filter(x=>x>0).length/12:(a._sal[m]>0?1:0)})).filter(x=>x.v>0);
+  ad.forEach(x=>rows.push({c:['Admin',esc(x.n),m<0?x.v.toFixed(2):'1']}));
+  return Mo('Headcount',mname(m)+(m<0?' (average)':''),[cn('Type'),cn('Client / Employee'),cn('Headcount',1)],rows,['','Manpower / Admin',`${fmt(pick(R.hc,m)/(m<0?12:1))} / ${(pick(R.ahc,m)/(m<0?12:1)).toFixed(2)}`]);
+}
+function dKPI(key){
+  const k=R.k,ratio=(t,lines,res)=>Mo(t,'How this figure is calculated',[cn('Item'),cn('Value',1)],lines.map(l=>({c:[l[0],l[1]],d:l[2]||''})),res);
+  switch(key){
+    case 'active':return Mo('Active clients','Clients with budget headcount > 0',[cn('Client'),cn('Headcount',1),cn('Fee / head',1),cn('Monthly fee',1),cn('FY revenue',1)],S.clients.filter(c=>c._hc>0).map(c=>({c:[esc(c.name),fmt(c._hc),fmt(c.fee,1),fmt(c._fee),fmt(c._fyFee)],d:'acct|'+S.map.rev+'|-1'})),['Total',fmt(k.hc),'',fmt(sumA(S.clients.map(c=>c._fee))),fmt(sumA(S.clients.map(c=>c._fyFee)))]);
+    case 'gpp':return ratio('Gross Profit %',[['Gross Profit',fmt(k.gp),'gp|_|-1'],['Revenue',fmt(k.rev),'cat|Revenue|-1']],['GP ÷ Revenue',pct(k.gpp)]);
+    case 'npp':return ratio('Net Profit %',[['Net Profit',fmt(k.np),'np|_|-1'],['Revenue',fmt(k.rev),'cat|Revenue|-1']],['NP ÷ Revenue',pct(k.npp)]);
+    case 'rph':return ratio('Revenue per head / month',[['FY Revenue',fmt(k.rev),'cat|Revenue|-1'],['Average headcount',fmt(k.hc),'hc|_|-1'],['Months','12']],['Revenue ÷ 12 ÷ headcount',fmt(k.rph,1)]);
+    case 'nph':return ratio('Net profit per head / month',[['FY Net Profit',fmt(k.np),'np|_|-1'],['Average headcount',fmt(k.hc),'hc|_|-1'],['Months','12']],['Net profit ÷ 12 ÷ headcount',fmt(k.nph,1)]);
+    case 'dep':return Mo('Depreciation & amortisation','Full year',[cn('Asset'),cn('Description'),cn('Class'),cn('Monthly',1),cn('FY',1)],S.assets.filter(a=>a._fy>0).map(a=>({c:[a.id,esc(a.desc),a.cls,fmt(a._md),fmt(a._fy)]})),['','','Total','',fmt(k.dep)]);
+    case 'capex':return Mo('Capital expenditure','Assets purchased in the budget year',[cn('Asset'),cn('Description'),cn('Class'),cn('Purchase date'),cn('Cost',1)],S.assets.filter(a=>a._add>0).map(a=>({c:[a.id,esc(a.desc),a.cls,a.date,fmt(a._add)]})),['','','','Total',fmt(k.capex)]);
+    case 'nbv':return Mo('Closing net book value','As at 31 Dec',[cn('Asset'),cn('Description'),cn('Class'),cn('Closing Acc Dep',1),cn('Closing NBV',1)],S.assets.filter(a=>a._act&&a._nbv!==0).map(a=>({c:[a.id,esc(a.desc),a.cls,fmt(a._cad),fmt(a._nbv)]})),['','','Total','',fmt(k.nbv)]);
+    case 'check':return Mo('Model check','Postings whose ERP code is not in the Chart of Accounts',[cn('Source'),cn('Code'),cn('Month'),cn('Reference'),cn('Amount',1)],R.uncP.map(p=>({c:[p.src,esc(p.c),MONTHS[p.m],esc(p.ref),fmt(p.v)]})),['','','','Total (absolute)',fmt(k.check)]);
+    case 'ahc':return dHC(-1);
+  }
+}
+function drill(spec){
+  const [kind,key,ms]=spec.split('|');const m=ms===undefined||ms===''?-1:+ms;
+  if(kind==='je'){const i=S.journal.findIndex(j=>j.id===key);if(i<0)return;closeModal();JE=i;show('journal');return}
+  const X=({mpemp:()=>dMpEmp(+key),acct:()=>dAcct(key,m),cat:()=>dCat(key,m),gp:()=>dGP(m),np:()=>dNP(m),tc:()=>dTC(m),hc:()=>dHC(m),kpi:()=>dKPI(key)})[kind]?.();
+  if(!X)return;MS.push(X);renderModal();
+}
+function renderModal(){
+  const X=MS[MS.length-1];if(!X){closeModal();return}
+  $('mt').textContent=X.title;$('ms').textContent=X.sub;
+  $('mbody').innerHTML=`<table id="mtbl"><thead><tr>${X.cols.map(c=>`<th class="${c.n?'num':''}">${esc(c.h)}</th>`).join('')}</tr></thead><tbody>${X.rows.length?X.rows.map(r=>`<tr${r.d?` class="lnk" data-d="${r.d}"`:''}>${r.c.map((v,i)=>`<td class="${X.cols[i].n?'num':''}">${v}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${X.cols.length}">No postings.</td></tr>`}${X.total?`<tr class="tot">${X.total.map((v,i)=>`<td class="${X.cols[i].n?'num':''}">${v}</td>`).join('')}</tr>`:''}</tbody></table>`;
+  $('mo').style.display='flex';
+}
+function backModal(){MS.pop();MS.length?renderModal():closeModal()}
+function closeModal(){MS=[];$('mo').style.display='none'}
+function modalXLSX(){if(!window.XLSX)return;const wb=XLSX.utils.table_to_book($('mtbl'),{sheet:'Breakdown'});XLSX.writeFile(wb,'Breakdown.xlsx')}
+document.addEventListener('click',e=>{const el=e.target.closest?.('[data-d]');if(el&&el.dataset.d)drill(el.dataset.d)});
+
+/* ---------- views ---------- */
+const TABS=[['dash','Dashboard'],['pl','Budget P&L'],['journal','Journal Entries'],['clients','Clients'],['mpform','Manpower Form'],['manpower','Manpower Files'],['admin','Admin Staff'],['opex','Opex'],['assets','Fixed Assets'],['coa','Chart of Accounts'],['settings','Settings']];
+function nav(){$('nav').innerHTML=TABS.map(([k,l])=>`<button class="${k===TAB?'on':''}" onclick="${k==='journal'?'JE=null;':''}show('${k}')">${l}</button>`).join('')}
+let chart;
+function summaryFor(t){
+  if(t==='clients'){const k=R.k;return `<div class="kpis"><div class="kpi"><div class="l">Budget headcount</div><div class="v">${fmt(k.hc)}</div></div><div class="kpi lnk" data-d="cat|Revenue|-1"><div class="l">FY service-fee revenue</div><div class="v">${fmt(sumA(S.clients.map(c=>c._fyFee||0)))}</div></div><div class="kpi lnk" data-d="kpi|active"><div class="l">Active clients</div><div class="v">${k.active}</div></div></div>`}
+  if(t==='assets'){
+    let h='<div class="tw"><table><thead><tr><th>Asset Class</th>'+['Opening Cost','Additions','Disposals','Closing Cost','Opening Acc Dep','Depreciation','Acc Dep on Disp.','Closing Acc Dep','Opening NBV','Closing NBV'].map(x=>`<th class="num">${x}</th>`).join('')+'</tr></thead><tbody>';
+    const tot=Array(10).fill(0);
+    Object.entries(R.cs).forEach(([n,c])=>{const v=[c.oc,c.ad,c.dc,c.cc,c.oad,c.dep,c.dad,c.cad,c.oc-c.oad,c.cc-c.cad];v.forEach((x,i)=>tot[i]+=x);h+=`<tr><td>${n}</td>${v.map(x=>`<td class="num">${fmt(x)}</td>`).join('')}</tr>`});
+    h+=`<tr class="tot"><td>Total</td>${tot.map(x=>`<td class="num">${fmt(x)}</td>`).join('')}</tr></tbody></table></div>`;
+    h+='<div class="tw"><table><thead><tr><th>Monthly schedule</th>'+MONTHS.map(m=>`<th class="num">${m}</th>`).join('')+'<th class="num">FY</th></tr></thead><tbody>'+
+      `<tr><td>Depreciation & Amortisation</td>${R.depM.map(x=>`<td class="num">${fmt(x)}</td>`).join('')}<td class="num lnk" data-d="kpi|dep">${fmt(sumA(R.depM))}</td></tr>`+
+      `<tr><td>Capital Expenditure</td>${R.capex.map(x=>`<td class="num">${fmt(x)}</td>`).join('')}<td class="num lnk" data-d="kpi|capex">${fmt(sumA(R.capex))}</td></tr></tbody></table></div>`;
+    return h;
+  }
+  if(t==='admin')return `<div class="kpis"><div class="kpi lnk" data-d="kpi|ahc"><div class="l">Avg admin headcount</div><div class="v">${R.k.ahc.toFixed(2)}</div></div><div class="kpi"><div class="l">FY admin salaries</div><div class="v">${fmt(sumA(S.admin.map(a=>a._fySal)))}</div></div><div class="kpi lnk" data-d="acct|${S.map.aEosb}|-1"><div class="l">FY admin EOSB</div><div class="v">${fmt(sumA(S.admin.map(a=>a._fyEosb)))}</div></div></div>`;
+  if(t==='opex')return `<div class="kpis"><div class="kpi lnk" data-d="acct|${S.map.rent}|-1"><div class="l">Office rent (${S.settings.area} sqm × ${S.settings.rate})</div><div class="v">${fmt(R.k.rent)}</div></div><div class="kpi"><div class="l">Opex table total</div><div class="v">${fmt(sumA(S.opex.map(o=>o._fy)))}</div></div></div>`;
+  return '';
+}
+function warnBox(){
+  const bad=S.opex.filter(o=>o.method==='Per Manpower Head'&&+o.amt>0&&/paid by client|\(0/i.test(o.desc));
+  if(!bad.length)return '';
+  return `<div class="warn"><b>⚠ Check Opex inputs:</b> ${bad.map(o=>`<b>${o.code} ${esc(o.name)}</b> (${fmt(o.amt)} per head/month)`).join(', ')} are described as “paid by client / 0 here” but carry a per-head amount. With ${fmt(R.k.hc)} heads this adds ${fmt(sumA(bad.map(o=>o._fy)))} of direct cost and drives the large loss. Set the Amount to 0 on the <a href="#" onclick="show('opex');return false">Opex tab</a> to see the intended result.</div>`;
+}
+function sumRow(label,arr,kind,key,cls=''){
+  return `<tr class="${cls}"><td>${label}</td>${arr.map((v,m)=>cell(v,kind?`${kind}|${key}|${m}`:'')).join('')}${cell(sumA(arr),kind?`${kind}|${key}|-1`:'')}<td class="num">${R.k.rev&&kind?pct(sumA(arr)/R.k.rev):''}</td></tr>`;
+}
+function plSummary(){
+  const T=R.T;
+  return sumRow('Revenue',T.Revenue,'cat','Revenue','grp')+sumRow('Direct Costs',T['Direct Cost'],'cat','Direct Cost')+sumRow('Gross Profit',R.gp,'gp','_','tot')+sumRow('Admin Expenses',T['Admin Expense'],'cat','Admin Expense')+sumRow('Other Income',T['Other Income'],'cat','Other Income')+sumRow('Other Expenses',T['Other Expense'],'cat','Other Expense')+sumRow('Net Profit',R.np,'np','_','tot')+
+   `<tr><td>Manpower Headcount</td>${R.hc.map((v,m)=>cell(v,`hc|_|${m}`)).join('')}${cell(sumA(R.hc)/12,'hc|_|-1')}<td></td></tr><tr><td>Admin Headcount</td>${R.ahc.map((v,m)=>cell(v,`hc|_|${m}`)).join('')}${cell(sumA(R.ahc)/12,'hc|_|-1')}<td></td></tr>`;
+}
+function detailRows(hz){
+  let h='';
+  PLC.forEach(cat=>{
+    const items=S.coa.filter(a=>a.cat===cat).map(a=>[a.code,a.name,R.L[a.code]||Array(12).fill(0)]).filter(x=>!hz||Math.abs(sumA(x[2]))>0.5);
+    if(!items.length)return;
+    h+=`<tr class="grp"><td colspan="17">${cat}</td></tr>`;
+    items.forEach(([c,n,a])=>{h+=`<tr><td>${esc(c)}</td><td>${esc(n)}</td><td>${cat}</td>${a.map((v,m)=>cell(v,`acct|${c}|${m}`)).join('')}${cell(sumA(a),`acct|${c}|-1`)}<td class="num">${R.k.rev?pct(sumA(a)/R.k.rev):''}</td></tr>`});
+  });
+  const unk=Object.keys(R.L).filter(c=>!CM[c]&&Math.abs(sumA(R.L[c]))>0.5);
+  if(unk.length){h+=`<tr class="grp"><td colspan="17">Codes not in Chart of Accounts (not counted in totals)</td></tr>`;unk.forEach(c=>{h+=`<tr><td>${esc(c)}</td><td>Unknown</td><td>—</td>${R.L[c].map((v,m)=>cell(v,`acct|${c}|${m}`)).join('')}${cell(sumA(R.L[c]),`acct|${c}|-1`)}<td></td></tr>`})}
+  return h;
+}
+let HZ=true;
+/* journal views */
+function nextNo(){const n=Math.max(0,...S.journal.map(j=>+(String(j.no).match(/(\d+)$/)||[0,0])[1]));return 'JE-'+String(n+1).padStart(4,'0')}
+function newJE(){const Y=+S.settings.year,t=new Date().toISOString().slice(0,10);
+  S.journal.push({id:uid(),no:nextNo(),date:+t.slice(0,4)===Y?t:`${Y}-01-01`,ref:'',desc:'',status:'Draft',lines:[{code:'',name:'',desc:'',dr:'',cr:''},{code:'',name:'',desc:'',dr:'',cr:''}],notes:'',att:[]});
+  JE=S.journal.length-1;commit();show('journal')}
+async function delJE(i){if(!confirm(`Delete ${S.journal[i].no} and its attachments?`))return;for(const a of S.journal[i].att){delete ATT[a.id];try{if(SPM.on)await spDelFile(a.id);else await window.storage?.delete('nps:att:'+a.id)}catch(e){}}S.journal.splice(i,1);JE=null;commit();show('journal')}
+function dupJE(i){const j=JSON.parse(JSON.stringify(clean(S.journal[i])));j.id=uid();j.no=nextNo();j.status='Draft';j.att=[];S.journal.push(normJ(j));commit();show('journal')}
+function jList(){
+  if(!S.journal.length)return `<div class="tools"><button class="btn" onclick="newJE()">+ New journal entry</button></div><div class="card"><p class="note">No journal entries yet. Create one to record manual adjustments with notes and attachments. Posted, balanced entries dated in ${S.settings.year} flow into the Budget P&L.</p></div>`;
+  return `<div class="tools"><button class="btn" onclick="newJE()">+ New journal entry</button><span class="note">Click a row to open it. Posted + balanced entries feed the Budget P&L.</span></div>
+  <div class="tw"><table><thead><tr><th>Entry No</th><th>Date</th><th>Reference</th><th>Description</th><th>Status</th><th class="num">Debit</th><th class="num">Credit</th><th>📎</th><th>📝</th><th></th></tr></thead><tbody>${S.journal.map((j,i)=>`<tr class="lnk" data-d="jedit|${i}"><td><b>${esc(j.no)}</b></td><td>${j.date}</td><td>${esc(j.ref)}</td><td>${esc(j.desc)}</td><td><span class="badge ${j._cls}">${j._msg}</span></td><td class="num">${fmt(j._dr,2)}</td><td class="num">${fmt(j._cr,2)}</td><td>${j.att.length||''}</td><td>${j.notes?'✓':''}</td><td><button class="x" title="Duplicate" onclick="event.stopPropagation();dupJE(${i})">⧉</button><button class="x" title="Delete" onclick="event.stopPropagation();delJE(${i})">✕</button></td></tr>`).join('')}</tbody></table></div>`;
+}
+function attList(j){
+  return j.att.length?`<div class="atts">${j.att.map((a,i)=>`<div class="att">${(a.type||'').startsWith('image/')?`<img data-att="${a.id}" alt="">`:'<div class="ficon">📄</div>'}<div class="an"><b>${esc(a.name)}</b><small>${(a.size/1024).toFixed(0)} KB · ${(a.added||'').slice(0,10)}</small></div><button class="btn alt" onclick="dlAtt(${i})">Download</button><button class="x" title="Remove" onclick="rmAtt(${i})">✕</button></div>`).join('')}</div>`:'<p class="note">No attachments yet.</p>';
+}
+function jEditor(){
+  const j=S.journal[JE];
+  return `<div class="tools"><button class="btn alt" onclick="JE=null;show('journal')">← All entries</button><span id="jbadge"></span></div>
+  <div class="card"><h3>Journal entry</h3><div class="form">
+   <label>Entry No<input data-j="no" value="${esc(j.no)}"></label>
+   <label>Date<input type="date" data-j="date" value="${j.date}"></label>
+   <label>Reference<input data-j="ref" value="${esc(j.ref)}" placeholder="Invoice / voucher / contract no."></label>
+   <label>Status<select data-j="status"><option${j.status==='Draft'?' selected':''}>Draft</option><option${j.status==='Posted'?' selected':''}>Posted</option></select></label>
+   <label style="grid-column:1/-1">Description<input data-j="desc" value="${esc(j.desc)}" placeholder="What is this entry for?"></label></div>
+   <p class="note">Posted + balanced entries dated in ${S.settings.year} are added to the Budget P&L: revenue / other income = credit − debit, expenses = debit − credit. Balance-sheet accounts are recorded but do not affect the P&L.</p></div>
+  <div class="card"><h3>Lines</h3><div class="tw"><table><thead><tr><th>#</th><th>Account (search code or name)</th><th>Account name</th><th>Line description</th><th class="num">Debit</th><th class="num">Credit</th><th></th></tr></thead><tbody>${j.lines.map((l,i)=>`<tr><td>${i+1}</td><td><input class="acct" data-f="all" data-jl="${i}" data-jk="code" value="${esc(l.code)}" placeholder="Search code or name…" autocomplete="off"></td><td class="roc" id="jn${i}">${esc(CM[l.code]?.name||'')}</td><td><input data-jl="${i}" data-jk="desc" value="${esc(l.desc)}" style="min-width:220px"></td><td><input type="number" step="any" data-jl="${i}" data-jk="dr" value="${l.dr}"></td><td><input type="number" step="any" data-jl="${i}" data-jk="cr" value="${l.cr}"></td><td><button class="x" onclick="delLine(${i})">✕</button></td></tr>`).join('')}</tbody></table></div>
+   <button class="btn" onclick="addLine()">+ Add line</button><div id="jtot" class="note" style="font-size:13px;margin-top:10px"></div></div>
+  <div class="card"><h3>Notes</h3><textarea data-j="notes" placeholder="Explanation, approval remarks, follow-ups…">${esc(j.notes)}</textarea></div>
+  <div class="card"><h3>Attachments</h3><input type="file" multiple onchange="addFiles(this.files);this.value=''"><p class="note">Max 3 MB per file. Files are kept with the auto-saved data and included in Export JSON.</p><div id="alist">${attList(j)}</div></div>`;
+}
+function jRefresh(){
+  const j=S.journal[JE];if(!j||!$('jtot'))return;
+  $('jtot').innerHTML=`<b>Debit</b> ${fmt(j._dr,2)} &nbsp;·&nbsp; <b>Credit</b> ${fmt(j._cr,2)} &nbsp;·&nbsp; <b>Difference</b> ${fmt(j._dr-j._cr,2)} ${Math.abs(j._dr-j._cr)<0.005?'<span class="pos">✓ balanced</span>':'<span class="neg">✗ not balanced</span>'}`;
+  $('jbadge').innerHTML=`<span class="badge ${j._cls}">${j._msg}</span>`;
+  j.lines.forEach((l,i)=>{const e=$('jn'+i);if(e)e.innerHTML=l.code?(CM[l.code]?esc(CM[l.code].name):'<span class="neg">Not in Chart of Accounts</span>'):''});
+}
+function addLine(){S.journal[JE].lines.push({code:'',name:'',desc:'',dr:'',cr:''});show('journal')}
+function delLine(i){S.journal[JE].lines.splice(i,1);commit();show('journal')}
+async function addFiles(files){
+  const j=S.journal[JE];
+  for(const f of files){
+    if(f.size>3*1024*1024){alert(`${f.name} is larger than 3 MB and was skipped.`);continue}
+    const data=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(f)});
+    if(SPM.on){
+      try{const it=await spUpload(j,f);ATT[it.id]=data;j.att.push({id:it.id,name:it.name,type:f.type,size:f.size,added:new Date().toISOString()})}
+      catch(e){alert(`Upload of ${f.name} to SharePoint failed: ${e.message}`)}
+      continue;
+    }
+    const id=uid();ATT[id]=data;j.att.push({id,name:f.name,type:f.type,size:f.size,added:new Date().toISOString()});
+    try{await window.storage?.set('nps:att:'+id,data)}catch(e){}
+  }
+  $('alist').innerHTML=attList(j);loadThumbs();scheduleSave();
+}
+async function dlAtt(i){const a=S.journal[JE].att[i],data=await getAtt(a.id);if(!data){alert('Attachment data is not available.');return}const l=document.createElement('a');l.href=data;l.download=a.name;document.body.appendChild(l);l.click();l.remove()}
+async function rmAtt(i){const a=S.journal[JE].att[i];if(!confirm(`Remove ${a.name}?`))return;S.journal[JE].att.splice(i,1);delete ATT[a.id];try{if(SPM.on)await spDelFile(a.id);else await window.storage?.delete('nps:att:'+a.id)}catch(e){}$('alist').innerHTML=attList(S.journal[JE]);loadThumbs();scheduleSave()}
+function loadThumbs(){document.querySelectorAll('img[data-att]').forEach(async im=>{const d=await getAtt(im.dataset.att);if(d)im.src=d})}
+
+function show(t){
+  closeDD();TAB=t;nav();const v=$('view'),k=R.k;mpToggle(t);
+  $('ttl').textContent='Budget FY '+S.settings.year+' – '+S.settings.company;
+  if(t==='dash'){
+    const K=(l,x,c='',d='')=>`<div class="kpi${d?' lnk':''}"${d?` data-d="${d}"`:''}><div class="l">${l}</div><div class="v ${c}">${x}</div></div>`;
+    const msum=[['Revenue',R.T.Revenue,'cat','Revenue'],['Direct Costs',R.T['Direct Cost'],'cat','Direct Cost'],['Gross Profit',R.gp,'gp','_'],['Admin Expenses',R.T['Admin Expense'],'cat','Admin Expense'],['Net Profit',R.np,'np','_']];
+    v.innerHTML=warnBox()+`<p class="note">Click any KPI, chart bar or monthly figure to see exactly what it is made of.</p><div class="kpis">${K('Total Revenue',fmt(k.rev),'','cat|Revenue|-1')}${K('Direct Costs',fmt(k.dc),'','cat|Direct Cost|-1')}${K('Gross Profit',fmt(k.gp),k.gp<0?'neg':'pos','gp|_|-1')}${K('GP %',pct(k.gpp),'','kpi|gpp')}${K('Admin Expenses',fmt(k.ae),'','cat|Admin Expense|-1')}${K('Net Profit',fmt(k.np),k.np<0?'neg':'pos','np|_|-1')}${K('Net Profit %',pct(k.npp),'','kpi|npp')}${K('Avg Manpower HC',fmt(k.hc),'','hc|_|-1')}${K('Avg Admin HC',k.ahc.toFixed(2),'','kpi|ahc')}${K('Active Clients',k.active,'','kpi|active')}${K('Revenue / Head / Month',fmt(k.rph,1),'','kpi|rph')}${K('Net Profit / Head / Month',fmt(k.nph,1),k.nph<0?'neg':'pos','kpi|nph')}${K('Annual Office Rent',fmt(k.rent),'',`acct|${S.map.rent}|-1`)}${K('Depreciation & Amort.',fmt(k.dep),'','kpi|dep')}${K('Capital Expenditure',fmt(k.capex),'','kpi|capex')}${K('Closing NBV',fmt(k.nbv),'','kpi|nbv')}${K('Model Check (0 = OK)',fmt(k.check),Math.abs(k.check)>0.5?'neg':'pos','kpi|check')}</div>
+    <div class="card"><h3>Monthly trend (${S.settings.currency})</h3><canvas id="ch"></canvas></div>
+    <div class="card"><h3>Monthly summary</h3><div class="tw"><table><thead><tr><th>Line</th>${MONTHS.map(m=>`<th class="num">${m}</th>`).join('')}<th class="num">FY</th></tr></thead><tbody>${msum.map(([n,a,kd,ky])=>`<tr><td>${n}</td>${a.map((x,m)=>cell(x,`${kd}|${ky}|${m}`)).join('')}${cell(sumA(a),`${kd}|${ky}|-1`)}</tr>`).join('')}</tbody></table></div></div>`;
+    if(window.Chart){if(chart)chart.destroy();chart=new Chart($('ch'),{type:'bar',data:{labels:MONTHS,datasets:[{label:'Revenue',data:R.T.Revenue,backgroundColor:'#2f5bea'},{label:'Total costs',data:R.T['Direct Cost'].map((x,i)=>x+R.T['Admin Expense'][i]),backgroundColor:'#f0a23b'},{label:'Net profit',type:'line',data:R.np,borderColor:'#c62828',backgroundColor:'#c62828',tension:.25}]},options:{responsive:true,plugins:{legend:{position:'bottom'}},onClick:(e,els)=>{if(!els.length)return;const {datasetIndex:d,index:m}=els[0];drill([`cat|Revenue|${m}`,`tc|_|${m}`,`np|_|${m}`][d])}}})}
+  }else if(t==='pl'){
+    v.innerHTML=warnBox()+`<p class="note">Click any figure to see the postings behind it (month or full year).</p><div class="card"><h3>Summary</h3><div class="tw"><table><thead><tr><th></th>${MONTHS.map(m=>`<th class="num">${m}</th>`).join('')}<th class="num">FY Total</th><th class="num">% Rev</th></tr></thead><tbody>${plSummary()}</tbody></table></div></div>
+    <div class="card"><h3>Detail by ERP account</h3><div class="tools"><label><input type="checkbox" ${HZ?'checked':''} onchange="HZ=this.checked;show('pl')"> Hide zero rows</label></div><div class="tw"><table><thead><tr><th>ERP Code</th><th>Account</th><th>Category</th>${MONTHS.map(m=>`<th class="num">${m}</th>`).join('')}<th class="num">FY Total</th><th class="num">% Rev</th></tr></thead><tbody>${detailRows(HZ)}</tbody></table></div></div>`;
+  }else if(t==='journal'){
+    v.innerHTML=JE!=null&&S.journal[JE]?jEditor():jList();
+    if(JE!=null&&S.journal[JE]){jRefresh();loadThumbs()}
+  }else if(t==='clients'){
+    v.innerHTML=`<p class="note">Revenue = Budget Headcount × Fee × 12. Budget HC = Latest Actual HC, or Contract Workers × % of Contract when a % (e.g. 80) is entered. Clients whose Company differs from Settings are excluded. <b>If a manpower JSON file is linked to a client (Manpower Files tab), its monthly headcount, payroll cost and fee replace the manual headcount for that client.</b></p><div id="sum">${summaryFor(t)}</div>`+tbl('clients');updateCalc();
+  }else if(t==='mpform'){
+    v.innerHTML='';
+  }else if(t==='manpower'){
+    v.innerHTML=mpView();
+  }else if(t==='admin'){
+    v.innerHTML=`<p class="note">Increment applies from the chosen month to all salary components. EOSB accrues per Settings rules; monthly cost = change in accrued balance.</p><div id="sum">${summaryFor(t)}</div>`+tbl('admin');updateCalc();
+  }else if(t==='opex'){
+    v.innerHTML=`<p class="note">Click the ERP Code cell and type part of a code or account name to search the Chart of Accounts (↑ ↓ Enter also work). Methods: Monthly · Annual (spread) · One-off · Per Manpower Head · Per Admin Head. Blank Start/End = Jan–Dec.</p><div id="sum">${summaryFor(t)}</div>`+tbl('opex');updateCalc();
+  }else if(t==='assets'){
+    v.innerHTML=`<p class="note">Straight-line depreciation starting in the month of purchase. Blank life = class default; blank Opening Acc Dep = auto-calculated.</p><div id="sum">${summaryFor(t)}</div>`+tbl('assets');updateCalc();
+  }else if(t==='settings'){
+    const s=S.settings,F=(k,l,t='number')=>`<label>${l}<input data-s="${k}" type="${t}" step="any" value="${esc(s[k])}"></label>`;
+    v.innerHTML=`<div class="card"><h3>General</h3><div class="form">${F('company','Company Name','text')}${F('year','Budget Year')}${F('currency','Currency','text')}${F('area','Office Area (sqm)')}${F('rate','Rent Rate (per sqm / year)')}${F('visaCost','Visa cost per head / year (for “Visa = Yes” clients)')}${F('vat','VAT % on manpower invoices')}<label>Manpower accounting method<select data-s="mpMethod"><option value="Gross"${s.mpMethod!=='Net'?' selected':''}>Gross – revenue = payroll cost + fee, payroll in direct costs</option><option value="Net"${s.mpMethod==='Net'?' selected':''}>Net – only the fee is revenue</option></select></label></div></div>
+    <div class="card"><h3>ERP account mapping – auto-calculated lines</h3><div class="form">${Object.keys(MAPL).map(k=>`<label>${MAPL[k]}<input class="acct" data-f="all" data-map="${k}" value="${esc(S.map[k])}" autocomplete="off"><small>${esc(CM[S.map[k]]?.name||'Not in Chart of Accounts')}</small></label>`).join('')}</div></div>
+    <div class="card"><h3>EOSB rules (UAE Federal Decree-Law 33/2021)</h3><div class="form">${F('d1','Days’ basic per year – first tier')}${F('thr','Tier threshold (years)')}${F('d2','Days’ basic per year – after threshold')}${F('minYears','Minimum service (years)')}${F('cap','Cap (months of basic)')}${F('div','Daily wage divisor')}</div></div>
+    <div class="card"><h3>Fixed asset classes – default life</h3><div class="form">${Object.entries(S.classes).map(([n,c])=>`<label>${n} (dep a/c ${c.dep})<input data-cl="${esc(n)}" type="number" value="${c.life}"></label>`).join('')}</div></div>`;
+  }else if(t==='coa'){v.innerHTML=coaView()}
+}
+/* jump from journal list rows */
+const _drill=drill;drill=function(spec){if(spec.startsWith('jedit|')){JE=+spec.split('|')[1];show('journal');return}_drill(spec)};
+
+/* ---------- manpower JSON files (from NPM_Manpower_Budget_2027.html) ---------- */
+const MPI=['salary','housing','rent','leave','bonus','ticket','eos','visa','pension','medical'];
+const MPMAP={salary:'mSal',housing:'mHous',rent:'mRent',leave:'mLeave',bonus:'mBonus',ticket:'mTicket',eos:'mEos',visa:'visa',pension:'mPension',medical:'mMed'};
+const MPL={salary:'Salaries & allowances',housing:'Housing allowance',rent:'Rent',leave:'Leave salary',bonus:'Bonus',ticket:'Air ticket',eos:'End of service',visa:'Visa',pension:'Pension',medical:'Medical'};
+const MPPAY=['basic','allow1','allow2','supp','housing','cola','social','children','others','tel','ffm','second'];
+let MPMSG='',MPJE='all';
+function mpCalc(file){
+  const d=file.data||{},it={},fte=Array(12).fill(0);MPI.forEach(k=>it[k]=Array(12).fill(0));
+  const arr=a=>Array.isArray(a)&&a.length===12?a.map(x=>+x||0):null;
+  (d.employees||[]).forEach(e=>{
+    const f=arr(e.monthly_fte)||Array(12).fill((+e.months||0)/12);
+    f.forEach((x,m)=>fte[m]+=x);
+    const mi=e.monthly_items;
+    if(mi&&MPI.every(k=>arr(mi[k]))){MPI.forEach(k=>mi[k].forEach((x,m)=>it[k][m]+=+x||0));return}
+    // older file without monthly_items: rebuild from monthly pay and spread annual items by days on payroll
+    const pay=MPPAY.reduce((s,k)=>s+(+e[k]||0),0),hs=+e.housing||0,F=f.reduce((a,b)=>a+b,0);
+    f.forEach((x,m)=>{it.salary[m]+=(pay-hs)*x;it.housing[m]+=hs*x});
+    ['rent','leave','bonus','ticket','eos','visa','pension','medical'].forEach(k=>{const a=+e[k]||0;f.forEach((x,m)=>it[k][m]+=F?a*x/F:0)});
+  });
+  const cost=fte.map((_,m)=>MPI.reduce((s,k)=>s+it[k][m],0));
+  return {fte,it,cost};
+}
+function addMpData(d,fname,editId){ // shared by file import and the Manpower Form tab
+  if(!d||!Array.isArray(d.employees)||!d.company)throw new Error('not a manpower budget JSON file');
+  const name=(d.company.name||'').trim(),key=name.toLowerCase();
+  const match=S.clients.find(c=>c.name.trim().toLowerCase()===key);
+  const entry={id:uid(),file:fname,imported:new Date().toISOString(),client:match?match.name:'',data:d};
+  let ix=editId?S.manpower.findIndex(x=>x.id===editId):-1;
+  if(ix<0)ix=S.manpower.findIndex(x=>(x.data.company?.name||'').trim().toLowerCase()===key);
+  if(ix>=0){entry.id=S.manpower[ix].id;entry.client=S.manpower[ix].client||entry.client;S.manpower[ix]=entry;return `${fname}: replaced the earlier file for "${name}" (${d.employees.length} employees)`}
+  S.manpower.push(entry);return `${fname}: loaded "${name}" – ${d.employees.length} employees${match?'':' – not linked to a client yet'}`;
+}
+async function importManpower(files){
+  const msgs=[];
+  for(const f of files){
+    try{msgs.push(addMpData(JSON.parse(await f.text()),f.name))}
+    catch(err){msgs.push(`${f.name}: could not be read (${err.message})`)}
+  }
+  MPMSG=msgs.join(' · ');commit();show('manpower');
+}
+/* Manpower Form tab: the client form (manpower_form.html) runs in an iframe and posts its result here */
+let MPEDIT=null;
+function mpFrame(){const f=$('mpframe');if(!f.getAttribute('src'))f.setAttribute('src','manpower_form.html?embed=1');return f}
+function mpToggle(t){const w=$('mpwrap');w.hidden=t!=='mpform';if(t==='mpform'){mpFrame();$('mpedit').textContent=MPEDIT?'Editing: '+(S.manpower.find(x=>x.id===MPEDIT)?.data.company?.name||''):'New manpower budget'}}
+let MPREADY=false,MPQ=null;
+function mpPost(m){const f=mpFrame();if(!MPREADY){MPQ=m;return}try{f.contentWindow.postMessage(m,'*')}catch(e){}}
+function mpNew(){MPEDIT=null;MPQ=null;$('mpedit').textContent='New manpower budget';mpPost({type:'mp-new'})}
+function editMp(i){const f=S.manpower[i];if(!f)return;MPEDIT=f.id;show('mpform');mpPost({type:'mp-load',data:f.data})}
+window.addEventListener('message',ev=>{
+  const m=ev.data;if(!m||ev.source!==$('mpframe').contentWindow)return;
+  if(m.type==='mp-ready'){MPREADY=true;if(MPQ){const q=MPQ;MPQ=null;mpPost(q)}return}
+  if(m.type!=='mp-submit')return;
+  try{MPMSG=addMpData(m.data,m.file||'form',MPEDIT);MPEDIT=null;commit();show('manpower')}
+  catch(err){alert('Could not add the form: '+err.message)}
+});
+function linkMp(i,v){S.manpower[i].client=v;commit();show('manpower')}
+function mkClientMp(i){
+  const d=S.manpower[i].data,n=(d.company.name||'New client').trim();
+  S.clients.push({...DEF.clients,name:n,fee:+d.owner?.fee_per_head_per_month||0,eosb:'Company Cost',company:S.settings.company,notes:'Created from manpower JSON'});
+  S.manpower[i].client=n;commit();show('manpower');
+}
+function rmMp(i){if(!confirm(`Remove the file for "${S.manpower[i].data.company?.name||S.manpower[i].file}"? The budget will go back to the manual headcount for that client.`))return;S.manpower.splice(i,1);commit();show('manpower')}
+function dMpEmp(i){
+  const f=S.manpower[i];if(!f)return null;const E=f.data.employees||[];
+  return Mo(`${f.data.company?.name||f.file} – employees`,`${E.length} employees · file ${f.file}`,
+    [cn('#',1),cn('Name'),cn('Title'),cn('Status'),cn('Start'),cn('End'),cn('Months',1),cn('Monthly pay',1),cn('Annual cost',1)],
+    E.map((e,n)=>({c:[n+1,esc(e.name),esc(e.title),esc(e.status||''),e.start_date||'',e.end_date||'',(+e.months||0).toFixed(2),fmt(e.total_monthly),fmt(e.total_annual_cost)]})),
+    ['','Total','','','','','','',fmt(sumA(E.map(e=>+e.total_annual_cost||0)))]);
+}
+function mpJE(sel){
+  const idx=sel==='all'?[...Array(12).keys()]:[+sel],A={};MPI.forEach(k=>A[k]=0);let fee=0;
+  S.manpower.forEach(f=>{if(!f._act)return;idx.forEach(m=>{MPI.forEach(k=>A[k]+=f._c.it[k][m]);fee+=f._c.fte[m]*f._rate})});
+  const ac=c=>c?`${esc(c)} – ${esc(CM[c]?.name||'not in Chart of Accounts')}`:'(no account)';
+  const dr=ks=>ks.map(k=>[ac(S.map[MPMAP[k]])+` <small>(${MPL[k]})</small>`,A[k],0]);
+  const sal=A.salary+A.housing,prov=A.leave+A.eos+A.ticket+A.bonus,ap=A.rent+A.visa+A.pension+A.medical,cost=sal+prov+ap;
+  const vat=(cost+fee)*(+S.settings.vat||0)/100,inv=cost+fee+vat;
+  const L=[['1. Monthly payroll',[...dr(['salary','housing']),['Salaries Payable',0,sal]]],
+    ['2. Leave, EOS, air ticket and bonus accruals',[...dr(['leave','eos','ticket','bonus']),['Provisions (Leave / EOS / Ticket / Bonus)',0,prov]]],
+    ['3. Rent, visa, pension and medical',[...dr(['rent','visa','pension','medical']),['Bank / Accounts Payable',0,ap]]],
+    ['4. Pay salaries (WPS)',[['Salaries Payable',sal,0],['Bank',0,sal]]],
+    ['5. Invoice the client',[['Accounts Receivable (incl. VAT)',inv,0],[ac(S.map.recharge)+' <small>(payroll recharge)</small>',0,cost],[ac(S.map.rev)+' <small>(service fee)</small>',0,fee],[`VAT Output ${S.settings.vat}%`,0,vat]]],
+    ['6. Client pays',[['Bank',inv,0],['Accounts Receivable',0,inv]]]];
+  let h='<div class="tw"><table><thead><tr><th>Entry / account</th><th class="num">Debit</th><th class="num">Credit</th></tr></thead><tbody>',D=0,C=0;
+  L.forEach(([t,ls])=>{h+=`<tr class="grp"><td colspan="3">${t}</td></tr>`;ls.filter(l=>Math.abs(l[1])+Math.abs(l[2])>0.005).forEach(([a,d,c])=>{D+=d;C+=c;h+=`<tr><td${c?' style="padding-left:28px"':''}>${a}</td><td class="num">${d?fmt(d,2):''}</td><td class="num">${c?fmt(c,2):''}</td></tr>`})});
+  return h+`<tr class="tot"><td>Total ${Math.abs(D-C)<0.01?'<span class="pos">✓ balanced</span>':'<span class="neg">✗ not balanced</span>'}</td><td class="num">${fmt(D,2)}</td><td class="num">${fmt(C,2)}</td></tr></tbody></table></div>`;
+}
+function mpView(){
+  const A=R.mp,vr=+S.settings.vat||0,sm=sumA,net=S.settings.mpMethod==='Net';
+  const cost=sm(A.cost),fee=sm(A.fee),vat=(cost+fee)*vr/100;
+  const K=(l,v)=>`<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div></div>`;
+  let h=`<div class="tools"><button class="btn" onclick="document.getElementById('impmp').click()">⬆ Import manpower JSON file(s)</button><input type="file" id="impmp" accept=".json" multiple hidden onchange="importManpower(this.files);this.value=''">
+    <span class="note">Select the .json files returned by clients (one per client). They are kept inside this budget (auto-save and Export JSON) and drive the revenue, direct costs and headcount of the linked client. Re-importing the same company replaces its file.</span></div>`;
+  if(MPMSG)h+=`<div class="warn">${esc(MPMSG)}</div>`;
+  h+=`<div class="kpis">${K('Files loaded',S.manpower.length)}${K('Files in budget',S.manpower.filter(f=>f._act).length)}${K('Avg headcount (FTE)',(sm(A.fte)/12).toFixed(1))}${K('Payroll cost recharged',fmt(cost))}${K('Service fee',fmt(fee))}${K('Invoice value incl. VAT '+vr+'%',fmt(cost+fee+vat))}</div>
+  <p class="note">Method: <b>${net?'Net – only the service fee is revenue; payroll is not in the P&L':'Gross – revenue = payroll cost + fee; payroll cost is in Direct Costs, so gross profit = the fee'}</b> (change under Settings). Fee = “Fee / Head / Month” on the Clients tab × FTE of each month. Visa, medical and similar costs of a linked client now come from its file, not from Opex or the Clients visa setting.</p>`;
+  h+=`<div class="card"><h3>Files</h3><div class="tw"><table><thead><tr><th>Company in file</th><th>Contact</th><th>Loaded</th><th class="num">Employees</th><th>Linked client</th><th class="num">Avg FTE</th><th class="num">Payroll cost</th><th class="num">Service fee</th><th class="num">Invoice incl. VAT</th><th>Status</th><th></th></tr></thead><tbody>`+
+  (S.manpower.map((f,i)=>{
+    const d=f.data,c=S.clients.find(x=>x.name===f.client),cs=sm(f._c.cost),fs=sm(f._c.fte)*f._rate;
+    const st=!c?'<span class="badge b-bad">Not linked</span>':f._act?'<span class="badge b-ok">In budget</span>':'<span class="badge b-amb">Other company – excluded</span>';
+    return `<tr><td><b>${esc(d.company.name)}</b><br><small>${esc(f.file)}</small></td><td>${esc(d.company.contact||'')}</td><td>${(f.imported||'').slice(0,10)}</td><td class="num">${d.employees.length}</td>
+    <td><select data-nolog onchange="linkMp(${i},this.value)"><option value="">— not linked —</option>${S.clients.map(x=>`<option${x.name===f.client?' selected':''}>${esc(x.name)}</option>`).join('')}</select></td>
+    <td class="num">${(sm(f._c.fte)/12).toFixed(1)}</td><td class="num">${fmt(cs)}</td><td class="num">${fmt(fs)}</td><td class="num">${fmt((cs+fs)*(1+vr/100))}</td><td>${st}</td>
+    <td><button class="btn alt" data-d="mpemp|${i}">Employees</button> <button class="btn alt" onclick="editMp(${i})">Edit in form</button>${c?'':`<button class="btn alt" onclick="mkClientMp(${i})">+ Create client</button> `}<button class="x" title="Remove file" onclick="rmMp(${i})">✕</button></td></tr>`}).join('')||'<tr><td colspan="11">No manpower files loaded yet.</td></tr>')+`</tbody></table></div></div>`;
+  h+=`<div class="card"><h3>Monthly – clients in budget</h3><div class="tw"><table><thead><tr><th>Month</th><th class="num">Headcount (FTE)</th><th class="num">Payroll cost</th><th class="num">Service fee</th><th class="num">Revenue ex-VAT</th><th class="num">VAT</th><th class="num">Invoice total</th></tr></thead><tbody>`+
+    MONTHS.map((n,m)=>{const ex=A.cost[m]+A.fee[m],v=ex*vr/100;return `<tr><td>${n} ${S.settings.year}</td><td class="num">${A.fte[m].toFixed(2)}</td><td class="num">${fmt(A.cost[m])}</td><td class="num">${fmt(A.fee[m])}</td><td class="num">${fmt(ex)}</td><td class="num">${fmt(v)}</td><td class="num">${fmt(ex+v)}</td></tr>`}).join('')+
+    `<tr class="tot"><td>Total</td><td class="num">${(sm(A.fte)/12).toFixed(1)} avg</td><td class="num">${fmt(cost)}</td><td class="num">${fmt(fee)}</td><td class="num">${fmt(cost+fee)}</td><td class="num">${fmt(vat)}</td><td class="num">${fmt(cost+fee+vat)}</td></tr></tbody></table></div>
+    <p class="note">This is the invoice basis. In the P&L, revenue is ${net?'the fee only':'cost + fee'}; VAT is never revenue.</p></div>`;
+  h+=`<div class="card"><h3>Journal entries (gross method) – information only, the P&L already includes these amounts</h3><div class="tools"><label>Period <select onchange="MPJE=this.value;show('manpower')"><option value="all">Full year ${S.settings.year}</option>${MONTHS.map((n,m)=>`<option value="${m}"${String(m)===MPJE?' selected':''}>${n}</option>`).join('')}</select></label></div>${mpJE(MPJE)}</div>`;
+  return h;
+}
+
+/* ---------- export / import ---------- */
+function dl(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
+function plRows(){
+  const rows=[],m12=a=>[...a.map(x=>+x.toFixed(2)),+sumA(a).toFixed(2)],hd=[...MONTHS,'FY Total'];
+  [['Revenue',R.T.Revenue],['Direct Costs',R.T['Direct Cost']],['Gross Profit',R.gp],['Admin Expenses',R.T['Admin Expense']],['Other Income',R.T['Other Income']],['Other Expenses',R.T['Other Expense']],['Net Profit',R.np]].forEach(([n,a])=>rows.push({section:'Summary',code:'',account:n,category:'',...Object.fromEntries(hd.map((m,i)=>[m,m12(a)[i]]))}));
+  S.coa.filter(a=>PLC.includes(a.cat)).forEach(a=>{const arr=R.L[a.code]||Array(12).fill(0);rows.push({section:'Detail',code:a.code,account:a.name,category:a.cat,...Object.fromEntries(hd.map((m,i)=>[m,m12(arr)[i]]))})});
+  return rows;
+}
+async function exportJSON(){
+  compute();const journal=[];
+  for(const j of S.journal){const c=clean(j);c.attachments=[];for(const a of j.att)c.attachments.push({...a,data:await getAtt(a.id)});delete c.att;journal.push(c)}
+  const out={meta:{source:'NPS_Budget 2027.xlsx',exported:new Date().toISOString(),currency:S.settings.currency},
+    manpowerFiles:S.manpower.map(f=>({id:f.id,file:f.file,imported:f.imported,client:f.client,data:f.data})),
+    settings:S.settings,accountMapping:S.map,fixedAssetClasses:S.classes,chartOfAccounts:S.coa,clients:clean(S.clients),adminStaff:clean(S.admin),opex:clean(S.opex),fixedAssets:clean(S.assets),journalEntries:journal,
+    results:{kpis:R.k,budgetPL:plRows(),monthly:{revenue:R.T.Revenue,directCosts:R.T['Direct Cost'],adminExpenses:R.T['Admin Expense'],grossProfit:R.gp,netProfit:R.np,manpowerHeadcount:R.hc,adminHeadcount:R.ahc,depreciation:R.depM,capex:R.capex,manpowerFte:R.mp.fte,manpowerPayrollCost:R.mp.cost,manpowerServiceFee:R.mp.fee},
+      postings:POST.map(p=>({code:p.c,month:MONTHS[p.m],amount:+p.v.toFixed(2),source:p.src,reference:p.ref})),
+      clientCalc:S.clients.map(c=>({client:c.name,budgetHC:c._hc,monthlyFee:c._fee,fyRevenue:c._fee*12,fyVisaCost:c._visa})),
+      adminCalc:S.admin.map(a=>({id:a.id,name:a.name,monthlySalary:a._sal,monthlyEOSB:a._eosb,fySalary:a._fySal,fyEOSB:a._fyEosb})),
+      assetCalc:S.assets.map(a=>({id:a.id,monthlyDep:a._dep,fyDep:a._fy,closingAccDep:a._cad,closingNBV:a._nbv}))}};
+  dl(new Blob([JSON.stringify(out,null,2)],{type:'application/json'}),`NPS_Budget_${S.settings.year}.json`);
+}
+function sheetFrom(a){
+  const cols=COLS[a],calc=CALC[a];
+  return XLSX.utils.json_to_sheet(S[a].map(r=>{const o={};cols.forEach(c=>o[c.l]=r[c.k]);calc.forEach(c=>{const s=String(c.f(r)).replace(/<[^>]*>/g,'').replace(/,/g,'').replace(/^\((.*)\)$/,'-$1');o[c.l]=s!==''&&!isNaN(+s)?+s:s});return o}));
+}
+function exportXLSX(){
+  if(!window.XLSX){alert('Excel library failed to load (check internet access).');return}
+  compute();const wb=XLSX.utils.book_new(),add=(ws,n)=>XLSX.utils.book_append_sheet(wb,ws,n),J=XLSX.utils.json_to_sheet;
+  add(J(Object.entries(S.settings).map(([k,v])=>({Setting:k,Value:v}))),'Settings');
+  add(J(Object.entries(S.map).map(([k,v])=>({Line:MAPL[k],'ERP Code':v,Account:CM[v]?.name||''}))),'Account Mapping');
+  add(J(Object.entries(R.k).map(([k,v])=>({KPI:k,Value:v}))),'Dashboard');
+  add(J(plRows()),'Budget P&L');
+  add(J(POST.map(p=>({'ERP Code':p.c,Account:CM[p.c]?.name||'',Month:MONTHS[p.m],Amount:+p.v.toFixed(2),Source:p.src,Reference:p.ref}))),'P&L Postings');
+  add(sheetFrom('clients'),'Clients');add(sheetFrom('admin'),'Admin Staff');
+  const sal=[];S.admin.forEach(a=>{sal.push({Employee:a.name,Type:'Salary',...Object.fromEntries(MONTHS.map((m,i)=>[m,+a._sal[i].toFixed(2)]))});sal.push({Employee:a.name,Type:'EOSB cost',...Object.fromEntries(MONTHS.map((m,i)=>[m,+a._eosb[i].toFixed(2)]))})});
+  add(J(sal),'Admin Monthly');add(sheetFrom('opex'),'Opex');
+  add(J(S.opex.map(o=>({'ERP Code':o.code,Account:o.name,...Object.fromEntries(MONTHS.map((m,i)=>[m,+o._m[i].toFixed(2)])),'FY Total':+o._fy.toFixed(2)}))),'Opex Monthly');
+  add(sheetFrom('assets'),'Fixed Assets');
+  add(J(S.assets.map(a=>({ID:a.id,Description:a.desc,...Object.fromEntries(MONTHS.map((m,i)=>[m,+a._dep[i].toFixed(2)])),'FY Dep':+a._fy.toFixed(2)}))),'Depreciation Monthly');
+  add(J(Object.entries(R.cs).map(([n,c])=>({Class:n,'Opening Cost':c.oc,Additions:c.ad,Disposals:c.dc,'Closing Cost':c.cc,'Opening Acc Dep':c.oad,Depreciation:c.dep,'Acc Dep on Disposals':c.dad,'Closing Acc Dep':c.cad,'Closing NBV':c.cc-c.cad}))),'Asset Summary');
+  add(J(S.journal.map(j=>({'Entry No':j.no,Date:j.date,Reference:j.ref,Description:j.desc,Status:j.status,'Total Debit':j._dr,'Total Credit':j._cr,'In P&L':j._in?'Yes':'No',Notes:j.notes,Attachments:j.att.map(a=>a.name).join('; ')}))),'Journal Entries');
+  const jl=[];S.journal.forEach(j=>j.lines.forEach(l=>jl.push({'Entry No':j.no,Date:j.date,'Account Code':l.code,'Account Name':CM[l.code]?.name||'','Line Description':l.desc,Debit:+l.dr||0,Credit:+l.cr||0})));
+  add(J(jl),'Journal Lines');
+  add(J(S.manpower.map(f=>({File:f.file,Company:f.data.company?.name||'',Client:f.client,Employees:(f.data.employees||[]).length,'Avg FTE':+(sumA(f._c.fte)/12).toFixed(2),'Payroll cost':+sumA(f._c.cost).toFixed(2),'Service fee':+(sumA(f._c.fte)*f._rate).toFixed(2),Included:f._act?'Yes':'No'}))),'Manpower Files');
+  add(J(S.manpower.flatMap(f=>(f.data.employees||[]).map(e=>({Client:f.client||f.data.company?.name,Name:e.name,Title:e.title,Start:e.start_date,End:e.end_date,Months:e.months,'Monthly pay':e.total_monthly,'Annual cost':e.total_annual_cost})))),'Manpower Employees');
+  add(J(S.coa.map(a=>({'ERP Code':a.code,'Account Name':a.name,Category:a.cat}))),'Chart of Accounts');
+  XLSX.writeFile(wb,`NPS_Budget_${S.settings.year}.xlsx`);
+}
+$('imp').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=async()=>{try{const j=JSON.parse(r.result);
+    const journal=[];
+    for(const x of (j.journalEntries||[])){const att=[];
+      for(const a of (x.attachments||[])){
+        if(SPM.on&&a.data){ // upload imported attachment into the SharePoint library
+          const id=x.id||uid(),blob=await (await fetch(a.data)).blob(),it=await spUpload({id,no:x.no},new File([blob],a.name,{type:a.type||blob.type}));
+          ATT[it.id]=a.data;att.push({id:it.id,name:it.name,type:a.type,size:a.size,added:a.added});x.id=id;continue}
+        if(a.data){ATT[a.id]=a.data;try{window.storage?.set('nps:att:'+a.id,a.data)}catch(e){}}
+        att.push({id:a.id,name:a.name,type:a.type,size:a.size,added:a.added})}
+      journal.push({...x,att})}
+    applyState({manpower:j.manpowerFiles,settings:j.settings,map:j.accountMapping,coa:j.chartOfAccounts,journal,classes:j.fixedAssetClasses,clients:j.clients,admin:j.adminStaff,opex:j.opex,assets:j.fixedAssets});
+    JE=null;compute();show(TAB);scheduleSave()}catch(err){alert('Could not read JSON: '+err.message)}};
+  r.readAsText(f);e.target.value='';
+});
+async function resetAll(){
+  if(!confirm('Reset everything to the original workbook values? Journal entries and attachments will be deleted.'))return;
+  for(const j of S.journal)for(const a of j.att){delete ATT[a.id];try{if(SPM.on)await spDelFile(a.id);else await window.storage?.delete('nps:att:'+a.id)}catch(e){}}
+  S=initial();JE=null;compute();show(TAB);scheduleSave();
+}
+
+async function boot(){
+  if(IS_POPUP){document.body.textContent='Signing in…';return} // sign-in popup: the opener reads the result from the URL
+  compute();show('dash');
+  let ls=false;try{localStorage.setItem('nps:t','1');localStorage.removeItem('nps:t');ls=true}catch(e){}
+  setSv(!!window.storage||ls);
+  let raw=null;
+  try{if(window.storage){const r=await window.storage.get('nps:state');raw=r&&r.value}else if(ls)raw=localStorage.getItem('nps:state')}catch(e){}
+  if(raw){try{applyState(JSON.parse(raw));compute();show(TAB)}catch(e){}}
+  if(SPC.clientId&&SPC.siteUrl){await spConnect(false)}else spOpen('Welcome. Enter your SharePoint site and app details to store this budget in SharePoint lists – or close this and keep working locally.')
+}
+boot();
+</script>
+</body>
+</html>
